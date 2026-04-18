@@ -1,6 +1,7 @@
 package com.sakura_ai_reviewer.feature.dashboard.data
 
 import com.sakura_ai_reviewer.core.network.ApiResponse
+import com.sakura_ai_reviewer.core.network.EmptyData
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.GET
@@ -18,7 +19,7 @@ interface DashboardApiService {
     suspend fun getChartData(): ApiResponse<ChartDataResponse>
 
     @POST("dashboard/cache/refresh")
-    suspend fun refreshCache(): ApiResponse<Unit>
+    suspend fun refreshCache(): ApiResponse<EmptyData>
 }
 
 @JsonClass(generateAdapter = true)

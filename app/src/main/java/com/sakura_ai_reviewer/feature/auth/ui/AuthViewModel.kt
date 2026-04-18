@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.SessionManager
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.auth.data.AuthApiService
 import com.sakura_ai_reviewer.feature.auth.data.CallbackRequest
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +41,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _loginState.value = LoginState.Error(e.message ?: "Network error")
+                _loginState.value = LoginState.Error(e.toUserMessage())
             }
         }
     }
@@ -67,7 +68,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                _loginState.value = LoginState.Error(e.message ?: "Network error")
+                _loginState.value = LoginState.Error(e.toUserMessage())
             }
         }
     }

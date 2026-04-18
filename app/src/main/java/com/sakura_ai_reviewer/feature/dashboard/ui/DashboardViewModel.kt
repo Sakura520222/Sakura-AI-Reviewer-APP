@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.SessionManager
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardStatsData
 import com.sakura_ai_reviewer.feature.dashboard.data.RecentReviewData
@@ -63,7 +64,7 @@ class DashboardViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    stats = ApiResult.Error(e.message ?: "Network error")
+                    stats = ApiResult.Error(e.toUserMessage())
                 )
             }
         }
@@ -83,7 +84,7 @@ class DashboardViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    recentReviews = ApiResult.Error(e.message ?: "Network error")
+                    recentReviews = ApiResult.Error(e.toUserMessage())
                 )
             }
         }

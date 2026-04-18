@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewDetailData
 import com.sakura_ai_reviewer.feature.review.data.ReviewFileData
@@ -48,7 +49,7 @@ class ReviewDetailViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    review = ApiResult.Error(e.message ?: "Network error")
+                    review = ApiResult.Error(e.toUserMessage())
                 )
             }
         }
@@ -67,7 +68,7 @@ class ReviewDetailViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    files = ApiResult.Error(e.message ?: "Network error")
+                    files = ApiResult.Error(e.toUserMessage())
                 )
             }
         }

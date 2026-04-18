@@ -3,6 +3,7 @@ package com.sakura_ai_reviewer.feature.review.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewItemData
 import com.sakura_ai_reviewer.feature.review.data.ReviewListData
@@ -56,7 +57,7 @@ class ReviewListViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    reviews = ApiResult.Error(e.message ?: "Network error")
+                    reviews = ApiResult.Error(e.toUserMessage())
                 )
             }
         }

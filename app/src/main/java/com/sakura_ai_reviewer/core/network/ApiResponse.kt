@@ -12,3 +12,7 @@ data class ApiResponse<T>(
     @Json(name = "detail") val detail: String? = null,
     @Json(name = "code") val code: String? = null
 )
+
+/** Moshi-compatible empty type for endpoints that return no data */
+@JsonClass(generateAdapter = true)
+class EmptyData

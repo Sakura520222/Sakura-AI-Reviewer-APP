@@ -1,6 +1,7 @@
 package com.sakura_ai_reviewer.feature.settings.data
 
 import com.sakura_ai_reviewer.core.network.ApiResponse
+import com.sakura_ai_reviewer.core.network.EmptyData
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.Body
@@ -13,7 +14,7 @@ interface SettingsApiService {
     suspend fun getSettings(): ApiResponse<UserSettingsData>
 
     @PATCH("settings")
-    suspend fun updateSettings(@Body settings: UpdateSettingsRequest): ApiResponse<Unit>
+    suspend fun updateSettings(@Body settings: UpdateSettingsRequest): ApiResponse<EmptyData>
 
     @GET("settings/about")
     suspend fun getAbout(): ApiResponse<AboutData>

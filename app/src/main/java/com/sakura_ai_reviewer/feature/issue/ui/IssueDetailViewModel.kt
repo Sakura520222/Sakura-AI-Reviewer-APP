@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueDetailData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,7 +48,7 @@ class IssueDetailViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    issue = ApiResult.Error(e.message ?: "Network error")
+                    issue = ApiResult.Error(e.toUserMessage())
                 )
             }
         }
@@ -72,7 +73,7 @@ class IssueDetailViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isReanalyzing = false,
-                    reanalyzeResult = e.message ?: "Network error"
+                    reanalyzeResult = e.toUserMessage()
                 )
             }
         }

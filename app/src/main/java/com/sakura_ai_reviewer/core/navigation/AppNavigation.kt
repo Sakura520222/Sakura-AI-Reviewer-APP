@@ -29,9 +29,16 @@ import com.sakura_ai_reviewer.feature.auth.ui.LoginScreen
 import com.sakura_ai_reviewer.feature.dashboard.ui.DashboardScreen
 import com.sakura_ai_reviewer.feature.issue.ui.IssueDetailScreen
 import com.sakura_ai_reviewer.feature.issue.ui.IssueListScreen
+import com.sakura_ai_reviewer.feature.log.ui.ActionLogListScreen
+import com.sakura_ai_reviewer.feature.log.ui.ReviewLogDetailScreen
+import com.sakura_ai_reviewer.feature.log.ui.ReviewLogListScreen
+import com.sakura_ai_reviewer.feature.queue.ui.QueueScreen
+import com.sakura_ai_reviewer.feature.repo.ui.RepoListScreen
 import com.sakura_ai_reviewer.feature.review.ui.ReviewDetailScreen
 import com.sakura_ai_reviewer.feature.review.ui.ReviewListScreen
 import com.sakura_ai_reviewer.feature.settings.ui.SettingsScreen
+import com.sakura_ai_reviewer.feature.user.ui.UserDetailScreen
+import com.sakura_ai_reviewer.feature.user.ui.UserListScreen
 
 data class BottomNavItem(
     val route: String,
@@ -183,10 +190,17 @@ fun AppNavigation() {
                 // TODO: ScanDetailScreen
             }
             composable(NavRoute.ReviewLogs.route) {
-                // TODO: ReviewLogListScreen
+                ReviewLogListScreen(
+                    onNavigateToDetail = { reviewId ->
+                        navController.navigate(NavRoute.ReviewLogDetail.create(reviewId))
+                    },
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.ReviewLogDetail.route) {
-                // TODO: ReviewLogDetailScreen
+                ReviewLogDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.Settings.route) {
                 SettingsScreen(
@@ -194,22 +208,34 @@ fun AppNavigation() {
                 )
             }
             composable(NavRoute.UserList.route) {
-                // TODO: UserListScreen
+                UserListScreen(
+                    onNavigateToDetail = { userId ->
+                        navController.navigate(NavRoute.UserDetail.create(userId))
+                    }
+                )
             }
             composable(NavRoute.UserDetail.route) {
-                // TODO: UserDetailScreen
+                UserDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.RepoList.route) {
-                // TODO: RepoListScreen
+                RepoListScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.ActionLogs.route) {
-                // TODO: ActionLogListScreen
+                ActionLogListScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.QueueMonitor.route) {
-                // TODO: QueueScreen
+                QueueScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.Config.route) {
-                // TODO: ConfigScreen
+                // TODO: ConfigScreen (Phase 5)
             }
         }
     }

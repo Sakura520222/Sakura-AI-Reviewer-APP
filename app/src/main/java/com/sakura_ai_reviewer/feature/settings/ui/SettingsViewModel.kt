@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.auth.SessionManager
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.settings.data.AboutData
 import com.sakura_ai_reviewer.feature.settings.data.SettingsApiService
 import com.sakura_ai_reviewer.feature.settings.data.UpdateSettingsRequest
@@ -49,7 +50,7 @@ class SettingsViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    settings = ApiResult.Error(e.message ?: "Network error")
+                    settings = ApiResult.Error(e.toUserMessage())
                 )
             }
         }
@@ -81,7 +82,7 @@ class SettingsViewModel @Inject constructor(
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    saveResult = e.message ?: "Network error"
+                    saveResult = e.toUserMessage()
                 )
             }
         }

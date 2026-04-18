@@ -3,8 +3,12 @@ package com.sakura_ai_reviewer.core.network
 import com.sakura_ai_reviewer.feature.auth.data.AuthApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
+import com.sakura_ai_reviewer.feature.log.data.LogApiService
+import com.sakura_ai_reviewer.feature.queue.data.QueueApiService
+import com.sakura_ai_reviewer.feature.repo.data.RepoApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
 import com.sakura_ai_reviewer.feature.settings.data.SettingsApiService
+import com.sakura_ai_reviewer.feature.user.data.UserApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -86,4 +90,24 @@ object NetworkModule {
     @Singleton
     fun provideSettingsApiService(retrofit: Retrofit): SettingsApiService =
         retrofit.create(SettingsApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserApiService(retrofit: Retrofit): UserApiService =
+        retrofit.create(UserApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideRepoApiService(retrofit: Retrofit): RepoApiService =
+        retrofit.create(RepoApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideQueueApiService(retrofit: Retrofit): QueueApiService =
+        retrofit.create(QueueApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideLogApiService(retrofit: Retrofit): LogApiService =
+        retrofit.create(LogApiService::class.java)
 }
