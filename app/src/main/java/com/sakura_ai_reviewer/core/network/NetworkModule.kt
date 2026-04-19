@@ -11,6 +11,7 @@ import com.sakura_ai_reviewer.feature.repo.data.RepoApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
 import com.sakura_ai_reviewer.feature.scan.data.ScanApiService
 import com.sakura_ai_reviewer.feature.settings.data.SettingsApiService
+import com.sakura_ai_reviewer.feature.setup.data.SetupApiService
 import com.sakura_ai_reviewer.feature.user.data.UserApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -122,4 +123,9 @@ object NetworkModule {
     @Singleton
     fun provideConfigApiService(retrofit: Retrofit): ConfigApiService =
         retrofit.create(ConfigApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideSetupApiService(retrofit: Retrofit): SetupApiService =
+        retrofit.create(SetupApiService::class.java)
 }

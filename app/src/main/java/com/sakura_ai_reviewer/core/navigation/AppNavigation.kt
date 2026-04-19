@@ -40,6 +40,7 @@ import com.sakura_ai_reviewer.feature.review.ui.ReviewListScreen
 import com.sakura_ai_reviewer.feature.scan.ui.ScanDetailScreen
 import com.sakura_ai_reviewer.feature.scan.ui.ScanListScreen
 import com.sakura_ai_reviewer.feature.settings.ui.SettingsScreen
+import com.sakura_ai_reviewer.feature.setup.ui.SetupScreen
 import com.sakura_ai_reviewer.feature.user.ui.UserDetailScreen
 import com.sakura_ai_reviewer.feature.user.ui.UserListScreen
 
@@ -154,7 +155,13 @@ fun AppNavigation() {
                 )
             }
             composable(NavRoute.SetupWizard.route) {
-                // TODO: SetupWizardScreen
+                SetupScreen(
+                    onComplete = {
+                        navController.navigate(NavRoute.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
             }
             composable(NavRoute.Dashboard.route) {
                 DashboardScreen(
