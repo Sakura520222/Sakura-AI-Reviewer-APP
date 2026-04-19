@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import com.sakura_ai_reviewer.R
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.Role
+import com.sakura_ai_reviewer.feature.config.ui.ConfigScreen
 import com.sakura_ai_reviewer.feature.auth.ui.AuthViewModel
 import com.sakura_ai_reviewer.feature.auth.ui.LoginScreen
 import com.sakura_ai_reviewer.feature.dashboard.ui.DashboardScreen
@@ -251,7 +252,9 @@ fun AppNavigation() {
                 )
             }
             composable(NavRoute.Config.route) {
-                // TODO: ConfigScreen (Phase 5)
+                ConfigScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }

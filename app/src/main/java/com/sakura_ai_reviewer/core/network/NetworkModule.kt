@@ -2,6 +2,7 @@ package com.sakura_ai_reviewer.core.network
 
 import com.sakura_ai_reviewer.BuildConfig
 import com.sakura_ai_reviewer.feature.auth.data.AuthApiService
+import com.sakura_ai_reviewer.feature.config.data.ConfigApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
 import com.sakura_ai_reviewer.feature.log.data.LogApiService
@@ -116,4 +117,9 @@ object NetworkModule {
     @Singleton
     fun provideScanApiService(retrofit: Retrofit): ScanApiService =
         retrofit.create(ScanApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideConfigApiService(retrofit: Retrofit): ConfigApiService =
+        retrofit.create(ConfigApiService::class.java)
 }
