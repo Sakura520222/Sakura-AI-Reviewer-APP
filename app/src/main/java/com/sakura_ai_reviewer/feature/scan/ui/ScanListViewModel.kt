@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
 import com.sakura_ai_reviewer.core.network.toUserMessage
+import com.sakura_ai_reviewer.core.sse.SseEvent
+import com.sakura_ai_reviewer.core.sse.SseManager
 import com.sakura_ai_reviewer.feature.scan.data.ScanApiService
 import com.sakura_ai_reviewer.feature.scan.data.ScanListData
 import com.sakura_ai_reviewer.feature.scan.data.ScanStatsData
@@ -25,7 +27,8 @@ data class ScanListUiState(
 
 @HiltViewModel
 class ScanListViewModel @Inject constructor(
-    private val scanApiService: ScanApiService
+    private val scanApiService: ScanApiService,
+    private val sseManager: SseManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ScanListUiState())
@@ -34,6 +37,22 @@ class ScanListViewModel @Inject constructor(
     init {
         loadStats()
         loadScans()
+        observeSseEvents()
+    }
+
+    private fun observeSseEvents() {
+        viewModelScope.launch {
+            sseManager.events.collect { event ->
+                when (event) {
+                    is SseEvent.ScanProgress,
+                    is SseEvent.ScanCompleted -> {
+                        loadStats()
+                        loadScans()
+                    }
+                    else -> { }
+                }
+            }
+        }
     }
 
     private fun loadStats() {
