@@ -11,6 +11,7 @@ import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardStatsData
 import com.sakura_ai_reviewer.feature.dashboard.data.RecentReviewData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +40,7 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadUserInfo()
-        loadDashboard()
+        viewModelScope.launch { loadDashboard() }
         viewModelScope.launch {
             sessionManager.authState.collect {
                 loadUserInfo()
@@ -60,9 +61,13 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun loadDashboard() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(stats = ApiResult.Loading)
+    fun reloadDashboard() {
+        viewModelScope.launch { loadDashboard() }
+    }
+
+    private suspend fun loadDashboard() = coroutineScope {
+        _uiState.value = _uiState.value.copy(stats = ApiResult.Loading)
+        launch {
             try {
                 val response = dashboardApiService.getStats()
                 if (response.success && response.data != null) {
@@ -81,8 +86,8 @@ class DashboardViewModel @Inject constructor(
             }
         }
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(recentReviews = ApiResult.Loading)
+        _uiState.value = _uiState.value.copy(recentReviews = ApiResult.Loading)
+        launch {
             try {
                 val response = dashboardApiService.getRecentReviews()
                 if (response.success && response.data != null) {
@@ -116,7 +121,7 @@ class DashboardViewModel @Inject constructor(
     fun switchAccount(userId: Int) {
         sessionManager.switchAccount(userId)
         loadUserInfo()
-        loadDashboard()
+        viewModelScope.launch { loadDashboard() }
     }
 
     fun removeAccount(userId: Int) {

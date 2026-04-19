@@ -83,8 +83,36 @@ class ReviewListViewModel @Inject constructor(
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(isRefreshing = true, currentPage = 1)
-        loadReviews()
-        _uiState.value = _uiState.value.copy(isRefreshing = false)
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRefreshing = true, currentPage = 1)
+            loadReviewsSuspend()
+            _uiState.value = _uiState.value.copy(isRefreshing = false)
+        }
+    }
+
+    private suspend fun loadReviewsSuspend() {
+        _uiState.value = _uiState.value.copy(reviews = ApiResult.Loading)
+        try {
+            val state = _uiState.value
+            val response = reviewApiService.getReviews(
+                search = state.searchQuery,
+                status = state.statusFilter,
+                decision = state.decisionFilter,
+                page = state.currentPage
+            )
+            if (response.success && response.data != null) {
+                _uiState.value = _uiState.value.copy(
+                    reviews = ApiResult.Success(response.data)
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    reviews = ApiResult.Error(response.error ?: response.message ?: "Failed to load reviews")
+                )
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                reviews = ApiResult.Error(e.toUserMessage())
+            )
+        }
     }
 }

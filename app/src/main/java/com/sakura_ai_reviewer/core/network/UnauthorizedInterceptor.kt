@@ -20,10 +20,7 @@ class UnauthorizedInterceptor @Inject constructor(
 
         if (response.code == 401) {
             val path = request.url.encodedPath
-            val publicPaths = listOf("/health", "/auth/github", "/auth/callback", "/setup/")
-            val isPublic = publicPaths.any { path.contains(it) }
-
-            if (!isPublic) {
+            if (!NetworkConstants.isPublicPath(path)) {
                 val hasAuthHeader = request.header("Authorization") != null
                 Log.w(TAG, "Received 401 for $path, authHeader=$hasAuthHeader")
             }

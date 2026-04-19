@@ -19,20 +19,6 @@ import okhttp3.sse.EventSources
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/**
- * Manages the SSE (Server-Sent Events) connection for real-time event streaming.
- *
- * Uses OkHttp's [EventSource] to maintain a persistent connection to the server's
- * `/api/v1/events` endpoint. Events are parsed into typed [SseEvent] instances and
- * emitted through a [SharedFlow] that ViewModels can collect.
- *
- * Features:
- * - Token-based authentication via query parameter (required for SSE since headers
- *   are not easily set on EventSource requests)
- * - Exponential backoff reconnection on failure (1s -> 2s -> 4s -> ... -> 30s max)
- * - Automatic keepalive comment handling (`: keepalive` comments are ignored)
- * - Thread-safe reconnect state with `@Volatile` fields
- */
 @Singleton
 class SseManager @Inject constructor(
     private val okHttpClient: OkHttpClient,
@@ -53,53 +39,47 @@ class SseManager @Inject constructor(
         extraBufferCapacity = EVENTS_BUFFER_SIZE
     )
 
-    /** Flow of parsed SSE events for ViewModels to collect. */
     val events: SharedFlow<SseEvent> = _events.asSharedFlow()
 
-    /** The current active EventSource connection, or null when disconnected. */
+    private val _authFailure = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Emits when SSE disconnects due to authentication failure (401). */
+    val authFailure: SharedFlow<Unit> = _authFailure.asSharedFlow()
+
     @Volatile
     private var currentEventSource: EventSource? = null
 
-    /** Whether the manager is intentionally disconnected and should not reconnect. */
     @Volatile
     private var intentionallyDisconnected = false
 
-    /** Current exponential backoff delay in milliseconds. */
     @Volatile
     private var currentBackoffMs = INITIAL_BACKOFF_MS
 
-    /** The last base URL used for connection, stored for reconnect. */
     @Volatile
     private var connectedBaseUrl: String? = null
 
-    /** The last token used for connection, stored for reconnect. */
     @Volatile
     private var connectedToken: String? = null
 
-    /**
-     * Opens an SSE connection to `{baseUrl}events?token={token}`.
-     *
-     * If a connection is already active it will be closed first.
-     *
-     * @param baseUrl The API base URL (e.g. `https://server.com/api/v1/`).
-     * @param token   The Bearer JWT token for authentication.
-     */
+    private val mapType = Types.newParameterizedType(
+        Map::class.java,
+        String::class.java,
+        Any::class.java
+    )
+
+    private val mapAdapter by lazy { moshi.adapter<Map<String, Any?>>(mapType) }
+
     fun connect(baseUrl: String, token: String) {
-        Log.d(TAG, "connect() called with baseUrl=$baseUrl")
+        Log.d(TAG, "connect() called")
         intentionallyDisconnected = false
         connectedBaseUrl = baseUrl
         connectedToken = token
         currentBackoffMs = INITIAL_BACKOFF_MS
 
-        // Close any existing connection before opening a new one
         disconnectInternal()
-
         openConnection(baseUrl, token)
     }
 
-    /**
-     * Closes the SSE connection and stops automatic reconnection.
-     */
     fun disconnect() {
         Log.d(TAG, "disconnect() called")
         intentionallyDisconnected = true
@@ -108,12 +88,7 @@ class SseManager @Inject constructor(
         connectedToken = null
     }
 
-    /**
-     * Returns true if there is an active SSE connection.
-     */
     fun isConnected(): Boolean = currentEventSource != null
-
-    // ── Internal helpers ─────────────────────────────────────────────
 
     private fun disconnectInternal() {
         currentEventSource?.cancel()
@@ -121,13 +96,14 @@ class SseManager @Inject constructor(
     }
 
     private fun openConnection(baseUrl: String, token: String) {
-        val sseUrl = buildSseUrl(baseUrl, token)
-        Log.d(TAG, "Opening SSE connection to: ${sseUrl.substringBefore("token=")}token=***")
+        val sseUrl = buildSseUrl(baseUrl)
+        Log.d(TAG, "Opening SSE connection")
 
         val request = Request.Builder()
             .url(sseUrl)
             .header("Accept", "text/event-stream")
             .header("Cache-Control", "no-cache")
+            .header("Authorization", "Bearer $token")
             .build()
 
         val factory = EventSources.createFactory(okHttpClient)
@@ -136,18 +112,16 @@ class SseManager @Inject constructor(
 
             override fun onOpen(eventSource: EventSource, response: okhttp3.Response) {
                 Log.d(TAG, "SSE connection opened — response code: ${response.code}")
-                // Reset backoff on successful connection
                 currentBackoffMs = INITIAL_BACKOFF_MS
             }
 
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
-                // Ignore keepalive comments — type will be null for comments
                 if (type == null || type == "keepalive") {
                     Log.v(TAG, "Ignored keepalive/comment event")
                     return
                 }
 
-                Log.d(TAG, "SSE event received — type=$type, data=${data.take(200)}")
+                Log.d(TAG, "SSE event received — type=$type")
                 val sseEvent = parseEvent(type, data)
                 scope.launch {
                     _events.emit(sseEvent)
@@ -162,10 +136,15 @@ class SseManager @Inject constructor(
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: okhttp3.Response?) {
                 val statusCode = response?.code
-                Log.w(TAG, "SSE connection failure — status=$statusCode, error=${t?.message}")
+                Log.w(TAG, "SSE connection failure — status=$statusCode")
                 currentEventSource = null
 
-                // Do not reconnect on client errors (4xx) except 429 (rate limit)
+                if (statusCode == 401) {
+                    Log.w(TAG, "Authentication failure — notifying observers")
+                    scope.launch { _authFailure.emit(Unit) }
+                    return
+                }
+
                 if (statusCode != null && statusCode in 400..499 && statusCode != 429) {
                     Log.w(TAG, "Client error $statusCode — not reconnecting")
                     return
@@ -176,19 +155,11 @@ class SseManager @Inject constructor(
         })
     }
 
-    /**
-     * Builds the SSE URL as `{baseUrl}events?token={token}`.
-     * Handles both trailing-slash and non-trailing-slash base URLs.
-     */
-    private fun buildSseUrl(baseUrl: String, token: String): String {
+    private fun buildSseUrl(baseUrl: String): String {
         val base = if (baseUrl.endsWith("/")) baseUrl else "$baseUrl/"
-        return "${base}${SSE_PATH}?token=$token"
+        return "${base}${SSE_PATH}"
     }
 
-    /**
-     * Schedules a reconnect attempt with exponential backoff.
-     * Does nothing if the manager is intentionally disconnected.
-     */
     private fun scheduleReconnect() {
         if (intentionallyDisconnected) {
             Log.d(TAG, "Not reconnecting — intentionally disconnected")
@@ -205,12 +176,10 @@ class SseManager @Inject constructor(
         val delayMs = currentBackoffMs
         Log.d(TAG, "Scheduling reconnect in ${delayMs}ms")
 
-        // Increase backoff for next attempt (exponential, capped at max)
         currentBackoffMs = (currentBackoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
 
         scope.launch {
             delay(delayMs)
-
             if (!intentionallyDisconnected) {
                 Log.d(TAG, "Reconnecting now...")
                 openConnection(base, token)
@@ -218,12 +187,6 @@ class SseManager @Inject constructor(
         }
     }
 
-    /**
-     * Parses an SSE event by its `type` field and JSON `data` into a typed [SseEvent].
-     *
-     * Uses Moshi to deserialize the JSON data into the appropriate event fields.
-     * Falls back to [SseEvent.Unknown] for unrecognized event types.
-     */
     private fun parseEvent(type: String, data: String): SseEvent {
         return when (type) {
             "review_started" -> parseReviewStarted(data)
@@ -238,8 +201,6 @@ class SseManager @Inject constructor(
             }
         }
     }
-
-    // ── Per-type JSON parsing helpers ────────────────────────────────
 
     private fun parseReviewStarted(data: String): SseEvent.ReviewStarted {
         return try {
@@ -351,20 +312,10 @@ class SseManager @Inject constructor(
         }
     }
 
-    /**
-     * Parses a JSON string into a Map using Moshi.
-     * Returns an empty map if parsing fails.
-     */
     @Suppress("UNCHECKED_CAST")
     private fun parseJsonToMap(json: String): Map<String, Any?> {
         return try {
-            val type = Types.newParameterizedType(
-                Map::class.java,
-                String::class.java,
-                Any::class.java
-            )
-            val adapter = moshi.adapter<Map<String, Any?>>(type)
-            adapter.fromJson(json) ?: emptyMap()
+            mapAdapter.fromJson(json) ?: emptyMap()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse JSON: ${json.take(100)}", e)
             emptyMap()
