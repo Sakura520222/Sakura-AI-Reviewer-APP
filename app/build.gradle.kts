@@ -40,6 +40,12 @@ android {
     }
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xannotation-default-target=param-property")
+    }
+}
+
 dependencies {
     // AndroidX Core
     implementation(libs.androidx.core.ktx)
@@ -98,6 +104,9 @@ dependencies {
 
     // Charts
     implementation(libs.vico.compose.m3)
+
+    // Markdown
+    implementation(libs.compose.markdown)
 
     // Testing
     testImplementation(libs.junit)

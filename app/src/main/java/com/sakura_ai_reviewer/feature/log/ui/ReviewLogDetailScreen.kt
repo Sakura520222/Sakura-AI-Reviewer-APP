@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +34,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.ui.components.InfoRow
+import com.sakura_ai_reviewer.core.ui.components.MarkdownCard
+import com.sakura_ai_reviewer.core.ui.components.MarkdownText
 import com.sakura_ai_reviewer.core.ui.theme.Primary
 import com.sakura_ai_reviewer.feature.log.data.ReviewLogCommentData
 import com.sakura_ai_reviewer.feature.log.data.ReviewLogDetailData
@@ -57,7 +61,7 @@ fun ReviewLogDetailScreen(
 
         when (val log = uiState.log) {
             is ApiResult.Success -> {
-                ReviewLogDetailContent(log = log.data, onRetry = { viewModel.retry() })
+                ReviewLogDetailContent(log = log.data)
             }
             is ApiResult.Loading -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -76,100 +80,93 @@ fun ReviewLogDetailScreen(
                 }
             }
             is ApiResult.Cached -> {
-                ReviewLogDetailContent(log = log.data, onRetry = { viewModel.retry() })
+                ReviewLogDetailContent(log = log.data)
             }
         }
     }
 }
 
 @Composable
-private fun ReviewLogDetailContent(log: ReviewLogDetailData, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        Text(
-            text = log.title ?: "Review #${log.id}",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            log.status?.let { status ->
-                Text(
-                    status.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.labelMedium,
-                    color = when (status) {
-                        "completed" -> MaterialTheme.colorScheme.primary
-                        "failed" -> MaterialTheme.colorScheme.error
-                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                    }
-                )
-            }
-            log.decision?.let {
-                Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        InfoRow("Repository", listOfNotNull(log.repoOwner, log.repoName).joinToString("/"))
-        InfoRow("Author", log.author ?: "-")
-        InfoRow("Score", log.overallScore?.toString() ?: "-")
-        InfoRow("Strategy", log.strategy ?: "-")
-        InfoRow("Tokens", "${log.promptTokens ?: 0} + ${log.completionTokens ?: 0}")
-        InfoRow("Created", log.createdAt ?: "-")
-        InfoRow("Completed", log.completedAt ?: "-")
-
-        log.reviewSummary?.let { summary ->
-            if (summary.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Summary", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                ) {
-                    Text(
-                        text = summary,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
-        log.errorMessage?.let { error ->
-            if (error.isNotBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text("Error", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Text(
-                        text = error,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-        }
-
-        if (!log.comments.isNullOrEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Comments (${log.comments.size})", style = MaterialTheme.typography.titleMedium)
+private fun ReviewLogDetailContent(log: ReviewLogDetailData) {
+    SelectionContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            Text(
+                text = log.title ?: "Review #${log.id}",
+                style = MaterialTheme.typography.headlineSmall
+            )
             Spacer(modifier = Modifier.height(4.dp))
-            log.comments.forEach { comment ->
-                ReviewLogCommentCard(comment)
-                Spacer(modifier = Modifier.height(4.dp))
-            }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                log.status?.let { status ->
+                    Text(
+                        status.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelMedium,
+                        color = when (status) {
+                            "completed" -> MaterialTheme.colorScheme.primary
+                            "failed" -> MaterialTheme.colorScheme.error
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+                log.decision?.let {
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            InfoRow("Repository", listOfNotNull(log.repoOwner, log.repoName).joinToString("/"))
+            InfoRow("Author", log.author ?: "-")
+            InfoRow("Score", log.overallScore?.toString() ?: "-")
+            InfoRow("Strategy", log.strategy ?: "-")
+            InfoRow("Tokens", "${log.promptTokens ?: 0} + ${log.completionTokens ?: 0}")
+            InfoRow("Created", log.createdAt ?: "-")
+            InfoRow("Completed", log.completedAt ?: "-")
+
+            log.reviewSummary?.let { summary ->
+                if (summary.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Summary", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    MarkdownCard(
+                        markdown = summary,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+
+            log.errorMessage?.let { error ->
+                if (error.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Error", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    MarkdownCard(
+                        markdown = error,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    )
+                }
+            }
+
+            if (!log.comments.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Comments (${log.comments.size})", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                log.comments.forEach { comment ->
+                    ReviewLogCommentCard(comment)
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
@@ -207,15 +204,10 @@ private fun ReviewLogCommentCard(comment: ReviewLogCommentData) {
                 Text("Line $line", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(comment.content ?: "", style = MaterialTheme.typography.bodySmall)
+            MarkdownCard(
+                markdown = comment.content ?: "",
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text("$label: ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.ui.components.InfoRow
+import com.sakura_ai_reviewer.core.ui.components.MarkdownCard
+import com.sakura_ai_reviewer.core.ui.components.MarkdownText
 import com.sakura_ai_reviewer.core.ui.theme.Primary
 import com.sakura_ai_reviewer.feature.issue.data.IssueDetailData
 
@@ -111,90 +115,84 @@ private fun IssueDetailContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(
-            text = issue.title ?: "Issue #${issue.issueNumber}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            IssueStatusChip(issue.status)
-            issue.category?.let {
-                Text(it.replaceFirstChar { c -> c.uppercase() }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
-            }
-            issue.priority?.let { pri ->
-                val color = when (pri) {
-                    "high" -> MaterialTheme.colorScheme.error
-                    "medium" -> MaterialTheme.colorScheme.tertiary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Text("${pri.replaceFirstChar { c -> c.uppercase() }} Priority", style = MaterialTheme.typography.labelMedium, color = color)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        InfoRow("Repository", listOfNotNull(issue.repoOwner, issue.repoName).joinToString("/"))
-        InfoRow("Author", issue.author ?: "-")
-        InfoRow("Feasibility", issue.feasibility ?: "-")
-        issue.appliedLabelNames?.let { InfoRow("Labels", it) }
-
-        // Summary
-        if (!issue.summary.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Summary", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
+        SelectionContainer {
+            Column {
                 Text(
-                    text = issue.summary,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
+                    text = issue.title ?: "Issue #${issue.issueNumber}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-            }
-        }
+                Spacer(modifier = Modifier.height(4.dp))
 
-        // Analysis detail
-        if (!issue.analysisDetail.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Analysis", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Text(
-                    text = issue.analysisDetail,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        // Suggestions
-        if (!issue.suggestedLabels.isNullOrEmpty()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text("Suggested Labels", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                issue.suggestedLabels.forEach { label ->
-                    Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-                        Text(label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    IssueStatusChip(issue.status)
+                    issue.category?.let {
+                        Text(it.replaceFirstChar { c -> c.uppercase() }, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.tertiary)
+                    }
+                    issue.priority?.let { pri ->
+                        val color = when (pri) {
+                            "high" -> MaterialTheme.colorScheme.error
+                            "medium" -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                        Text("${pri.replaceFirstChar { c -> c.uppercase() }} Priority", style = MaterialTheme.typography.labelMedium, color = color)
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                InfoRow("Repository", listOfNotNull(issue.repoOwner, issue.repoName).joinToString("/"))
+                InfoRow("Author", issue.author ?: "-")
+                InfoRow("Feasibility", issue.feasibility ?: "-")
+                issue.appliedLabelNames?.let { InfoRow("Labels", it) }
+
+                // Summary
+                if (!issue.summary.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Summary", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    MarkdownCard(
+                        markdown = issue.summary,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                // Analysis detail
+                if (!issue.analysisDetail.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Analysis", style = MaterialTheme.typography.titleMedium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    MarkdownCard(
+                        markdown = issue.analysisDetail,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+
+                // Suggestions
+                if (!issue.suggestedLabels.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Suggested Labels", style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        issue.suggestedLabels.forEach { label ->
+                            Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
+                                Text(label, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+                    }
+                }
+
+                if (!issue.suggestedAssignees.isNullOrEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Suggested Assignees", style = MaterialTheme.typography.titleSmall)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(issue.suggestedAssignees.joinToString(", "), style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
 
-        if (!issue.suggestedAssignees.isNullOrEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Suggested Assignees", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(issue.suggestedAssignees.joinToString(", "), style = MaterialTheme.typography.bodySmall)
-        }
-
-        // Reanalyze button
+        // Reanalyze button (outside SelectionContainer so it's clickable)
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(8.dp))
@@ -218,14 +216,6 @@ private fun IssueDetailContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text("$label: ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
     }
 }
 

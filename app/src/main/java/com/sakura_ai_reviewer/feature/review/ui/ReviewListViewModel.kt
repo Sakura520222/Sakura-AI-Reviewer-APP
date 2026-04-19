@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
 import com.sakura_ai_reviewer.core.network.toUserMessage
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
-import com.sakura_ai_reviewer.feature.review.data.ReviewItemData
 import com.sakura_ai_reviewer.feature.review.data.ReviewListData
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

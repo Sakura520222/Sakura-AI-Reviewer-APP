@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,6 +37,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.ui.components.InfoRow
+import com.sakura_ai_reviewer.core.ui.components.MarkdownCard
+import com.sakura_ai_reviewer.core.ui.components.MarkdownText
 import com.sakura_ai_reviewer.core.ui.theme.Primary
 import com.sakura_ai_reviewer.feature.review.data.ReviewCommentData
 import com.sakura_ai_reviewer.feature.review.data.ReviewDetailData
@@ -100,115 +104,97 @@ private fun ReviewDetailContent(
     filesState: ApiResult<List<ReviewFileData>>,
     onRetry: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        // Title and status
-        Text(
-            text = review.title ?: "PR #${review.prId}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StatusChip(review.status)
-            DecisionChip(review.decision)
-            review.overallScore?.let {
-                Text("Score: $it", style = MaterialTheme.typography.labelMedium, color = Primary)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-        InfoRow("Repository", listOfNotNull(review.repoOwner, review.repoName).joinToString("/"))
-        InfoRow("Author", review.author ?: "-")
-        InfoRow("Branch", review.branch ?: "-")
-        InfoRow("Strategy", review.strategy ?: "-")
-        InfoRow("Files", "${review.fileCount ?: 0} files, ${review.codeFileCount ?: 0} code files, ${review.lineCount ?: 0} lines")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Summary
-        if (!review.reviewSummary.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Summary", style = MaterialTheme.typography.titleMedium)
+    SelectionContainer {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp)
+        ) {
+            // Title and status
+            Text(
+                text = review.title ?: "PR #${review.prId}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
             Spacer(modifier = Modifier.height(4.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                Text(
-                    text = review.reviewSummary,
-                    modifier = Modifier.padding(12.dp),
-                    style = MaterialTheme.typography.bodyMedium
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatusChip(review.status)
+                DecisionChip(review.decision)
+                review.overallScore?.let {
+                    Text("Score: $it", style = MaterialTheme.typography.labelMedium, color = Primary)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            InfoRow("Repository", listOfNotNull(review.repoOwner, review.repoName).joinToString("/"))
+            InfoRow("Author", review.author ?: "-")
+            InfoRow("Branch", review.branch ?: "-")
+            InfoRow("Strategy", review.strategy ?: "-")
+            InfoRow("Files", "${review.fileCount ?: 0} files, ${review.codeFileCount ?: 0} code files, ${review.lineCount ?: 0} lines")
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Summary
+            if (!review.reviewSummary.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Summary", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                MarkdownCard(
+                    markdown = review.reviewSummary,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyMedium,
                 )
             }
-        }
 
-        if (!review.decisionReason.isNullOrBlank()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Decision Reason", style = MaterialTheme.typography.titleMedium)
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(review.decisionReason, style = MaterialTheme.typography.bodyMedium)
-        }
-
-        // Files section
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Files", style = MaterialTheme.typography.titleMedium)
-
-        when (filesState) {
-            is ApiResult.Success -> {
-                filesState.data.forEach { file ->
-                    Spacer(modifier = Modifier.height(4.dp))
-                    FileItem(file)
-                }
+            if (!review.decisionReason.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Decision Reason", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                MarkdownCard(
+                    markdown = review.decisionReason,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
-            is ApiResult.Loading -> {
-                Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
-                }
-            }
-            else -> {}
-        }
 
-        // Comments section
-        if (!review.comments.isNullOrEmpty()) {
+            // Files section
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider()
             Spacer(modifier = Modifier.height(8.dp))
-            Text("Comments (${review.comments.size})", style = MaterialTheme.typography.titleMedium)
+            Text("Files", style = MaterialTheme.typography.titleMedium)
 
-            review.comments.forEach { comment ->
-                Spacer(modifier = Modifier.height(4.dp))
-                CommentItem(comment)
+            when (filesState) {
+                is ApiResult.Success -> {
+                    filesState.data.forEach { file ->
+                        Spacer(modifier = Modifier.height(4.dp))
+                        FileItem(file)
+                    }
+                }
+                is ApiResult.Loading -> {
+                    Box(modifier = Modifier.fillMaxWidth().height(60.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Primary, modifier = Modifier.size(24.dp))
+                    }
+                }
+                else -> {}
             }
+
+            // Comments section
+            if (!review.comments.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Comments (${review.comments.size})", style = MaterialTheme.typography.titleMedium)
+
+                review.comments.forEach { comment ->
+                    Spacer(modifier = Modifier.height(4.dp))
+                    CommentItem(comment)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text(
-            text = "$label: ",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
     }
 }
 
@@ -266,9 +252,9 @@ private fun CommentItem(comment: ReviewCommentData) {
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = comment.content ?: "",
-                style = MaterialTheme.typography.bodySmall
+            MarkdownCard(
+                markdown = comment.content ?: "",
+                style = MaterialTheme.typography.bodySmall,
             )
         }
     }

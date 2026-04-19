@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -32,15 +32,12 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.sakura_ai_reviewer.core.network.ApiResult
+import com.sakura_ai_reviewer.core.ui.components.InfoRow
 import com.sakura_ai_reviewer.core.ui.theme.Primary
 import com.sakura_ai_reviewer.feature.user.data.UserDetailData
 
@@ -70,8 +67,7 @@ fun UserDetailScreen(
                     updateResult = uiState.updateResult,
                     onUpdateRole = { viewModel.updateRole(it) },
                     onToggleActive = { viewModel.toggleActive() },
-                    onResetQuota = { viewModel.resetQuota() },
-                    onRetry = { viewModel.retry() }
+                    onResetQuota = { viewModel.resetQuota() }
                 )
             }
             is ApiResult.Loading -> {
@@ -97,8 +93,7 @@ fun UserDetailScreen(
                     updateResult = uiState.updateResult,
                     onUpdateRole = { viewModel.updateRole(it) },
                     onToggleActive = { viewModel.toggleActive() },
-                    onResetQuota = { viewModel.resetQuota() },
-                    onRetry = { viewModel.retry() }
+                    onResetQuota = { viewModel.resetQuota() }
                 )
             }
         }
@@ -112,8 +107,7 @@ private fun UserDetailContent(
     updateResult: String?,
     onUpdateRole: (String) -> Unit,
     onToggleActive: () -> Unit,
-    onResetQuota: () -> Unit,
-    onRetry: () -> Unit
+    onResetQuota: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -121,65 +115,69 @@ private fun UserDetailContent(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(
-            text = user.githubUsername ?: "User #${user.id}",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(4.dp))
+        SelectionContainer {
+            Column {
+                Text(
+                    text = user.githubUsername ?: "User #${user.id}",
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Spacer(modifier = Modifier.height(4.dp))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
-                user.role?.replaceFirstChar { it.uppercase() } ?: "Unknown",
-                style = MaterialTheme.typography.labelMedium,
-                color = when (user.role) {
-                    "super_admin" -> MaterialTheme.colorScheme.error
-                    "admin" -> MaterialTheme.colorScheme.tertiary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        user.role?.replaceFirstChar { it.uppercase() } ?: "Unknown",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = when (user.role) {
+                            "super_admin" -> MaterialTheme.colorScheme.error
+                            "admin" -> MaterialTheme.colorScheme.tertiary
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                    Text(
+                        text = if (user.isActive == true) "Active" else "Disabled",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (user.isActive == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                    )
                 }
-            )
-            Text(
-                text = if (user.isActive == true) "Active" else "Disabled",
-                style = MaterialTheme.typography.labelMedium,
-                color = if (user.isActive == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-            )
-        }
 
-        Spacer(modifier = Modifier.height(12.dp))
-        InfoRow("ID", user.id.toString())
-        InfoRow("Telegram ID", user.telegramId?.toString() ?: "-")
-        InfoRow("Created", user.createdAt ?: "-")
+                Spacer(modifier = Modifier.height(12.dp))
+                InfoRow("ID", user.id.toString())
+                InfoRow("Telegram ID", user.telegramId?.toString() ?: "-")
+                InfoRow("Created", user.createdAt ?: "-")
 
-        // PR Quota
-        Spacer(modifier = Modifier.height(12.dp))
-        Text("PR Quota", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                QuotaRow("Daily", user.dailyUsed ?: 0, user.dailyQuota ?: 0)
-                QuotaRow("Weekly", user.weeklyUsed ?: 0, user.weeklyQuota ?: 0)
-                QuotaRow("Monthly", user.monthlyUsed ?: 0, user.monthlyQuota ?: 0)
+                // PR Quota
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("PR Quota", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        QuotaRow("Daily", user.dailyUsed ?: 0, user.dailyQuota ?: 0)
+                        QuotaRow("Weekly", user.weeklyUsed ?: 0, user.weeklyQuota ?: 0)
+                        QuotaRow("Monthly", user.monthlyUsed ?: 0, user.monthlyQuota ?: 0)
+                    }
+                }
+
+                // Issue Quota
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Issue Quota", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(4.dp))
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        QuotaRow("Daily", user.issueDailyUsed ?: 0, user.issueDailyQuota ?: 0)
+                        QuotaRow("Weekly", user.issueWeeklyUsed ?: 0, user.issueWeeklyQuota ?: 0)
+                        QuotaRow("Monthly", user.issueMonthlyUsed ?: 0, user.issueMonthlyQuota ?: 0)
+                    }
+                }
             }
         }
 
-        // Issue Quota
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Issue Quota", style = MaterialTheme.typography.titleMedium)
-        Spacer(modifier = Modifier.height(4.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                QuotaRow("Daily", user.issueDailyUsed ?: 0, user.issueDailyQuota ?: 0)
-                QuotaRow("Weekly", user.issueWeeklyUsed ?: 0, user.issueWeeklyQuota ?: 0)
-                QuotaRow("Monthly", user.issueMonthlyUsed ?: 0, user.issueMonthlyQuota ?: 0)
-            }
-        }
-
-        // Actions
+        // Actions (outside SelectionContainer so buttons are clickable)
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(8.dp))
@@ -235,14 +233,6 @@ private fun UserDetailContent(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-    }
-}
-
-@Composable
-private fun InfoRow(label: String, value: String) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-        Text("$label: ", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
     }
 }
 

@@ -42,8 +42,7 @@ fun Throwable.toUserMessage(): String {
 }
 
 private fun extractErrorFromJson(json: String): String {
-    val errorKey = """"error"\s*:\s*"""
-    val match = Regex("""(?<="error"\s*:\s*")([^"]+)""").find(json)
+    val match = Regex(""""error"\s*:\s*"([^"]+)"""").find(json)
     return match?.groupValues?.get(1) ?: json
 }
 
