@@ -36,6 +36,8 @@ import com.sakura_ai_reviewer.feature.queue.ui.QueueScreen
 import com.sakura_ai_reviewer.feature.repo.ui.RepoListScreen
 import com.sakura_ai_reviewer.feature.review.ui.ReviewDetailScreen
 import com.sakura_ai_reviewer.feature.review.ui.ReviewListScreen
+import com.sakura_ai_reviewer.feature.scan.ui.ScanDetailScreen
+import com.sakura_ai_reviewer.feature.scan.ui.ScanListScreen
 import com.sakura_ai_reviewer.feature.settings.ui.SettingsScreen
 import com.sakura_ai_reviewer.feature.user.ui.UserDetailScreen
 import com.sakura_ai_reviewer.feature.user.ui.UserListScreen
@@ -192,10 +194,16 @@ fun AppNavigation() {
                 )
             }
             composable(NavRoute.ScanList.route) {
-                // TODO: ScanListScreen
+                ScanListScreen(
+                    onNavigateToDetail = { scanId ->
+                        navController.navigate(NavRoute.ScanDetail.create(scanId))
+                    }
+                )
             }
             composable(NavRoute.ScanDetail.route) {
-                // TODO: ScanDetailScreen
+                ScanDetailScreen(
+                    onBack = { navController.popBackStack() }
+                )
             }
             composable(NavRoute.ReviewLogs.route) {
                 ReviewLogListScreen(

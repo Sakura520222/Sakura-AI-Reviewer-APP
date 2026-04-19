@@ -8,6 +8,7 @@ import com.sakura_ai_reviewer.feature.log.data.LogApiService
 import com.sakura_ai_reviewer.feature.queue.data.QueueApiService
 import com.sakura_ai_reviewer.feature.repo.data.RepoApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
+import com.sakura_ai_reviewer.feature.scan.data.ScanApiService
 import com.sakura_ai_reviewer.feature.settings.data.SettingsApiService
 import com.sakura_ai_reviewer.feature.user.data.UserApiService
 import com.squareup.moshi.Moshi
@@ -110,4 +111,9 @@ object NetworkModule {
     @Singleton
     fun provideLogApiService(retrofit: Retrofit): LogApiService =
         retrofit.create(LogApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideScanApiService(retrofit: Retrofit): ScanApiService =
+        retrofit.create(ScanApiService::class.java)
 }
