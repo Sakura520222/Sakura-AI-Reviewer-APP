@@ -156,7 +156,15 @@ fun AppNavigation() {
             composable(NavRoute.Dashboard.route) {
                 DashboardScreen(
                     onNavigateToReviews = { navController.navigate(NavRoute.ReviewList.route) },
-                    onNavigateToSettings = { navController.navigate(NavRoute.Settings.route) }
+                    onNavigateToSettings = { navController.navigate(NavRoute.Settings.route) },
+                    onNavigateToAddAccount = {
+                        navController.navigate(NavRoute.Login.route)
+                    },
+                    onLogout = {
+                        navController.navigate(NavRoute.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 )
             }
             composable(NavRoute.ReviewList.route) {

@@ -2,6 +2,7 @@ package com.sakura_ai_reviewer.feature.dashboard.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sakura_ai_reviewer.core.auth.AccountInfo
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.SessionManager
 import com.sakura_ai_reviewer.core.network.ApiResult
@@ -19,6 +20,9 @@ import javax.inject.Inject
 data class DashboardUiState(
     val username: String = "",
     val role: String = "",
+    val avatarUrl: String? = null,
+    val accounts: List<AccountInfo> = emptyList(),
+    val activeAccountId: Int = -1,
     val stats: ApiResult<DashboardStatsData> = ApiResult.Loading,
     val recentReviews: ApiResult<List<RecentReviewData>> = ApiResult.Loading,
     val isRefreshing: Boolean = false
@@ -36,6 +40,11 @@ class DashboardViewModel @Inject constructor(
     init {
         loadUserInfo()
         loadDashboard()
+        viewModelScope.launch {
+            sessionManager.authState.collect {
+                loadUserInfo()
+            }
+        }
     }
 
     private fun loadUserInfo() {
@@ -43,7 +52,10 @@ class DashboardViewModel @Inject constructor(
         if (authState is AuthState.Authenticated) {
             _uiState.value = _uiState.value.copy(
                 username = authState.username,
-                role = authState.role.name.lowercase().replace("_", " ")
+                role = authState.role.name.lowercase().replace("_", " "),
+                avatarUrl = authState.avatarUrl,
+                accounts = sessionManager.getAccountList(),
+                activeAccountId = authState.userId
             )
         }
     }
@@ -99,5 +111,20 @@ class DashboardViewModel @Inject constructor(
             loadDashboard()
             _uiState.value = _uiState.value.copy(isRefreshing = false)
         }
+    }
+
+    fun switchAccount(userId: Int) {
+        sessionManager.switchAccount(userId)
+        loadUserInfo()
+        loadDashboard()
+    }
+
+    fun removeAccount(userId: Int) {
+        sessionManager.removeAccount(userId)
+        loadUserInfo()
+    }
+
+    fun logout() {
+        sessionManager.logout()
     }
 }
