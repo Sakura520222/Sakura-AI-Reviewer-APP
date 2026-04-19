@@ -1,0 +1,3 @@
+# API Configuration
+# Copy this file to local.properties and set your server URL
+api.base.url=https://your-server.com/api/v1/

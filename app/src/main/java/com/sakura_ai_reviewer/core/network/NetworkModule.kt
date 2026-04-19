@@ -1,5 +1,6 @@
 package com.sakura_ai_reviewer.core.network
 
+import com.sakura_ai_reviewer.BuildConfig
 import com.sakura_ai_reviewer.feature.auth.data.AuthApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
@@ -25,7 +26,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
-    private const val BASE_URL = "https://pr-bot.firefly520.top/api/v1/"
 
     @Provides
     @Singleton
@@ -61,7 +61,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(okHttpClient: OkHttpClient, moshi: Moshi): Retrofit =
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BuildConfig.BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi))
             .build()

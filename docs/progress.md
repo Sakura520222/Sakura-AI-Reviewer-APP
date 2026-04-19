@@ -5,7 +5,7 @@
 ## 项目概况
 
 - **应用类型**：原生 Android（Kotlin + Jetpack Compose + Material3）
-- **后端 API**：`https://pr-bot.firefly520.top/api/v1/`（66 个端点）
+- **后端 API**：可配置（在 `local.properties` 中设置 `api.base.url`，默认 `https://your-server.com/api/v1/`）
 - **架构模式**：MVVM + Repository + 单模块分层
 - **技术栈**：Compose + Hilt + Retrofit/OkHttp/Moshi + Navigation Compose + DataStore
 - **minSdk**：31 | **targetSdk**：36
