@@ -1,6 +1,6 @@
 # Sakura AI Reviewer Android - 开发进度
 
-> 最后更新：2026-04-18
+> 最后更新：2026-04-19
 
 ## 项目概况
 
@@ -9,7 +9,7 @@
 - **架构模式**：MVVM + Repository + 单模块分层
 - **技术栈**：Compose + Hilt + Retrofit/OkHttp/Moshi + Navigation Compose + DataStore
 - **minSdk**：31 | **targetSdk**：36
-- **源码文件数**：58 个 Kotlin 文件
+- **源码文件数**：76 个 Kotlin 文件
 
 ---
 
@@ -65,6 +65,15 @@
 | 审查日志 | `LogApiService` (review-logs/action-logs) | `ReviewLogListViewModel` / `ReviewLogDetailViewModel` / `ActionLogListViewModel` | `ReviewLogListScreen` / `ReviewLogDetailScreen` / `ActionLogListScreen` | 已构建 |
 | 操作日志 | 同上 `LogApiService` | `ActionLogListViewModel` | `ActionLogListScreen` | 已构建 |
 
+### Phase 5: 高级功能
+
+| 模块 | API Service | ViewModel | Screen | 状态 |
+|------|------------|-----------|--------|------|
+| 扫描管理 | `ScanApiService` (list/stats/detail/trigger/retry/cancel) | `ScanListViewModel` / `ScanDetailViewModel` | `ScanListScreen` / `ScanDetailScreen` | 已构建 |
+| SSE 实时事件 | `core/sse/SseManager` (EventSource + Flow + 自动重连) | — | — | 已构建 |
+| 系统配置 | `ConfigApiService` (general/strategies/labels) | `ConfigViewModel` | `ConfigScreen`（多 Tab） | 已构建 |
+| Setup Wizard | `SetupApiService` (state/test-connection/save-step/complete) | `SetupViewModel` | `SetupScreen`（多步表单） | 已构建 |
+
 ---
 
 ## 已解决的关键问题
@@ -111,18 +120,18 @@
 | ReviewLogDetail | `logs/reviews/{reviewId}` | 审查日志详情 |
 | Settings | `settings` | 主题/每页数量/关于/登出 |
 
+### Phase 5 新增页面
+
+| 页面 | 路由 | 说明 |
+|------|------|------|
+| ScanList | `scans` | 扫描列表（搜索/状态过滤/分页/触发扫描） |
+| ScanDetail | `scans/{scanId}` | 扫描详情 + Findings 列表 |
+| Config | `super/config` | 系统配置（General/Strategies/Labels 三 Tab，super_admin 专属） |
+| SetupWizard | `setup` | 初始化引导（免认证，5步表单 + 连接测试） |
+
 ---
 
 ## 待完成阶段
-
-### Phase 5: 高级功能
-
-| 模块 | 涉及 API | 说明 |
-|------|---------|------|
-| **SSE 实时事件** | `GET /events` | OkHttp EventSource + Flow + 自动重连（事件格式已更新为 `event: <类型>` + 30s keepalive） |
-| **扫描管理** | `GET/POST /scans` (list/stats/detail/trigger/retry/cancel) | ScanListScreen + ScanDetailScreen |
-| **系统配置** | `GET/PATCH /config/general` + strategies + labels | ConfigScreen（多 Tab，super_admin 专属） |
-| **Setup Wizard** | `GET /setup/state` + save-step + complete | 初始化引导（免认证） |
 
 ### Phase 6: 打磨完善
 
@@ -143,19 +152,19 @@
 | API 分组 | 端点数 | 已接入 | 待接入 |
 |---------|--------|--------|--------|
 | Auth (3.2) | 5 | 5 | 0 |
-| Setup (3.3) | 4 | 0 | 4 |
+| Setup (3.3) | 4 | 4 | 0 |
 | Dashboard (3.4) | 4 | 4 | 0 |
 | Reviews (3.5) | 6 | 6 | 0 |
 | Issues (3.6) | 4 | 4 | 0 |
 | Users (3.7) | 10 | 10 | 0 |
 | Repos (3.8) | 5 | 5 | 0 |
-| Config (3.9) | 6 | 0 | 6 |
+| Config (3.9) | 6 | 6 | 0 |
 | Logs (3.10) | 4 | 4 | 0 |
 | Queue (3.11) | 6 | 6 | 0 |
-| Scans (3.12) | 6 | 0 | 6 |
+| Scans (3.12) | 6 | 6 | 0 |
 | Settings (3.13) | 3 | 3 | 0 |
-| Events/SSE (3.14) | 1 | 0 | 1 |
-| **合计** | **66** | **47** | **19** |
+| Events/SSE (3.14) | 1 | 1 | 0 |
+| **合计** | **66** | **66** | **0** |
 
 ---
 
