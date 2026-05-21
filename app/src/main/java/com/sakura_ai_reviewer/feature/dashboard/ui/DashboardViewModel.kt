@@ -6,7 +6,7 @@ import com.sakura_ai_reviewer.core.auth.AccountInfo
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.SessionManager
 import com.sakura_ai_reviewer.core.network.ApiResult
-import com.sakura_ai_reviewer.core.network.toUserMessage
+import com.sakura_ai_reviewer.core.network.safeApiCall
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardStatsData
 import com.sakura_ai_reviewer.feature.dashboard.data.RecentReviewData
@@ -66,44 +66,25 @@ class DashboardViewModel @Inject constructor(
     }
 
     private suspend fun loadDashboard() = coroutineScope {
-        _uiState.value = _uiState.value.copy(stats = ApiResult.Loading)
+        _uiState.value = _uiState.value.copy(
+            stats = ApiResult.Loading,
+            recentReviews = ApiResult.Loading
+        )
         launch {
-            try {
-                val response = dashboardApiService.getStats()
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(
-                        stats = ApiResult.Success(response.data)
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        stats = ApiResult.Error(response.error ?: "Failed to load stats")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    stats = ApiResult.Error(e.toUserMessage())
+            _uiState.value = _uiState.value.copy(
+                stats = safeApiCall(
+                    apiCall = { dashboardApiService.getStats() },
+                    errorMessage = "Failed to load stats"
                 )
-            }
+            )
         }
-
-        _uiState.value = _uiState.value.copy(recentReviews = ApiResult.Loading)
         launch {
-            try {
-                val response = dashboardApiService.getRecentReviews()
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(
-                        recentReviews = ApiResult.Success(response.data)
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        recentReviews = ApiResult.Error(response.error ?: "Failed to load reviews")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    recentReviews = ApiResult.Error(e.toUserMessage())
+            _uiState.value = _uiState.value.copy(
+                recentReviews = safeApiCall(
+                    apiCall = { dashboardApiService.getRecentReviews() },
+                    errorMessage = "Failed to load reviews"
                 )
-            }
+            )
         }
     }
 

@@ -3,7 +3,6 @@ package com.sakura_ai_reviewer.core.network
 import com.sakura_ai_reviewer.core.security.TokenManager
 import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.Request
 import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import javax.inject.Inject

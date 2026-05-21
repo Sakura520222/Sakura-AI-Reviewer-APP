@@ -3,7 +3,7 @@ package com.sakura_ai_reviewer.feature.review.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
-import com.sakura_ai_reviewer.core.network.toUserMessage
+import com.sakura_ai_reviewer.core.network.safeApiCall
 import com.sakura_ai_reviewer.feature.review.data.ReviewApiService
 import com.sakura_ai_reviewer.feature.review.data.ReviewListData
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,33 +34,7 @@ class ReviewListViewModel @Inject constructor(
         loadReviews()
     }
 
-    fun loadReviews() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(reviews = ApiResult.Loading)
-            try {
-                val state = _uiState.value
-                val response = reviewApiService.getReviews(
-                    search = state.searchQuery,
-                    status = state.statusFilter,
-                    decision = state.decisionFilter,
-                    page = state.currentPage
-                )
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(
-                        reviews = ApiResult.Success(response.data)
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        reviews = ApiResult.Error(response.error ?: response.message ?: "Failed to load reviews")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    reviews = ApiResult.Error(e.toUserMessage())
-                )
-            }
-        }
-    }
+    fun loadReviews() = viewModelScope.launch { loadReviewsSuspend() }
 
     fun updateSearch(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query, currentPage = 1)
@@ -92,27 +66,19 @@ class ReviewListViewModel @Inject constructor(
 
     private suspend fun loadReviewsSuspend() {
         _uiState.value = _uiState.value.copy(reviews = ApiResult.Loading)
-        try {
-            val state = _uiState.value
-            val response = reviewApiService.getReviews(
-                search = state.searchQuery,
-                status = state.statusFilter,
-                decision = state.decisionFilter,
-                page = state.currentPage
+        val state = _uiState.value
+        _uiState.value = _uiState.value.copy(
+            reviews = safeApiCall(
+                apiCall = {
+                    reviewApiService.getReviews(
+                        search = state.searchQuery,
+                        status = state.statusFilter,
+                        decision = state.decisionFilter,
+                        page = state.currentPage
+                    )
+                },
+                errorMessage = "Failed to load reviews"
             )
-            if (response.success && response.data != null) {
-                _uiState.value = _uiState.value.copy(
-                    reviews = ApiResult.Success(response.data)
-                )
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    reviews = ApiResult.Error(response.error ?: response.message ?: "Failed to load reviews")
-                )
-            }
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(
-                reviews = ApiResult.Error(e.toUserMessage())
-            )
-        }
+        )
     }
 }

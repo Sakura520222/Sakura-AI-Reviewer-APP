@@ -3,7 +3,7 @@ package com.sakura_ai_reviewer.feature.issue.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sakura_ai_reviewer.core.network.ApiResult
-import com.sakura_ai_reviewer.core.network.toUserMessage
+import com.sakura_ai_reviewer.core.network.safeApiCall
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueListData
 import com.sakura_ai_reviewer.feature.issue.data.IssueStatsData
@@ -39,43 +39,9 @@ class IssueListViewModel @Inject constructor(
         loadStats()
     }
 
-    private fun loadIssues() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(issues = ApiResult.Loading)
-            try {
-                val state = _uiState.value
-                val response = issueApiService.getIssues(
-                    search = state.searchQuery,
-                    status = state.statusFilter,
-                    category = state.categoryFilter,
-                    priority = state.priorityFilter,
-                    page = state.currentPage
-                )
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(issues = ApiResult.Success(response.data))
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        issues = ApiResult.Error(response.error ?: "Failed to load issues")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    issues = ApiResult.Error(e.toUserMessage())
-                )
-            }
-        }
-    }
+    private fun loadIssues() = viewModelScope.launch { loadIssuesSuspend() }
 
-    private fun loadStats() {
-        viewModelScope.launch {
-            try {
-                val response = issueApiService.getIssueStats()
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(stats = ApiResult.Success(response.data))
-                }
-            } catch (_: Exception) {}
-        }
-    }
+    private fun loadStats() = viewModelScope.launch { loadStatsSuspend() }
 
     fun updateSearch(query: String) {
         _uiState.value = _uiState.value.copy(searchQuery = query, currentPage = 1)
@@ -115,35 +81,29 @@ class IssueListViewModel @Inject constructor(
 
     private suspend fun loadIssuesSuspend() {
         _uiState.value = _uiState.value.copy(issues = ApiResult.Loading)
-        try {
-            val state = _uiState.value
-            val response = issueApiService.getIssues(
-                search = state.searchQuery,
-                status = state.statusFilter,
-                category = state.categoryFilter,
-                priority = state.priorityFilter,
-                page = state.currentPage
+        val state = _uiState.value
+        _uiState.value = _uiState.value.copy(
+            issues = safeApiCall(
+                apiCall = {
+                    issueApiService.getIssues(
+                        search = state.searchQuery,
+                        status = state.statusFilter,
+                        category = state.categoryFilter,
+                        priority = state.priorityFilter,
+                        page = state.currentPage
+                    )
+                },
+                errorMessage = "Failed to load issues"
             )
-            if (response.success && response.data != null) {
-                _uiState.value = _uiState.value.copy(issues = ApiResult.Success(response.data))
-            } else {
-                _uiState.value = _uiState.value.copy(
-                    issues = ApiResult.Error(response.error ?: "Failed to load issues")
-                )
-            }
-        } catch (e: Exception) {
-            _uiState.value = _uiState.value.copy(
-                issues = ApiResult.Error(e.toUserMessage())
-            )
-        }
+        )
     }
 
     private suspend fun loadStatsSuspend() {
-        try {
-            val response = issueApiService.getIssueStats()
-            if (response.success && response.data != null) {
-                _uiState.value = _uiState.value.copy(stats = ApiResult.Success(response.data))
-            }
-        } catch (_: Exception) {}
+        _uiState.value = _uiState.value.copy(
+            stats = safeApiCall(
+                apiCall = { issueApiService.getIssueStats() },
+                errorMessage = "Failed to load issue stats"
+            )
+        )
     }
 }
