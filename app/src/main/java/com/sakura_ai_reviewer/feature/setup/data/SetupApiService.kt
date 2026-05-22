@@ -1,11 +1,15 @@
 package com.sakura_ai_reviewer.feature.setup.data
 
 import com.sakura_ai_reviewer.core.network.ApiResponse
+import com.sakura_ai_reviewer.feature.config.data.AiProvidersData
+import com.sakura_ai_reviewer.feature.config.data.ProviderModelsData
+import com.sakura_ai_reviewer.feature.config.data.ProviderModelsRequest
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface SetupApiService {
 
@@ -16,6 +20,15 @@ interface SetupApiService {
     suspend fun testConnection(
         @Body request: TestConnectionRequest
     ): ApiResponse<TestConnectionResultData>
+
+    @GET("setup/ai-providers")
+    suspend fun getAiProviders(): ApiResponse<AiProvidersData>
+
+    @POST("setup/ai-providers/{provider}/models")
+    suspend fun getProviderModels(
+        @Path("provider") provider: String,
+        @Body body: ProviderModelsRequest? = null
+    ): ApiResponse<ProviderModelsData>
 
     @POST("setup/save-step")
     suspend fun saveStep(
@@ -53,8 +66,10 @@ data class TestConnectionRequest(
     @Json(name = "redis_url") val redisUrl: String? = null,
     @Json(name = "app_id") val appId: String? = null,
     @Json(name = "private_key") val privateKey: String? = null,
+    @Json(name = "provider") val provider: String? = null,
     @Json(name = "api_key") val apiKey: String? = null,
     @Json(name = "api_base") val apiBase: String? = null,
+    @Json(name = "model") val model: String? = null,
     @Json(name = "bot_token") val botToken: String? = null
 )
 
@@ -81,9 +96,11 @@ data class CompleteSetupRequest(
     @Json(name = "GITHUB_APP_ID") val githubAppId: String? = null,
     @Json(name = "GITHUB_PRIVATE_KEY") val githubPrivateKey: String? = null,
     @Json(name = "GITHUB_WEBHOOK_SECRET") val githubWebhookSecret: String? = null,
+    @Json(name = "AI_PROVIDER") val aiProvider: String? = null,
     @Json(name = "OPENAI_API_KEY") val openaiApiKey: String? = null,
     @Json(name = "OPENAI_API_BASE") val openaiApiBase: String? = null,
     @Json(name = "OPENAI_MODEL") val openaiModel: String? = null,
+    @Json(name = "SUMMARY_PROVIDER") val summaryProvider: String? = null,
     @Json(name = "TELEGRAM_BOT_TOKEN") val telegramBotToken: String? = null,
     @Json(name = "APP_DOMAIN") val appDomain: String? = null,
     @Json(name = "APP_PORT") val appPort: String? = null,

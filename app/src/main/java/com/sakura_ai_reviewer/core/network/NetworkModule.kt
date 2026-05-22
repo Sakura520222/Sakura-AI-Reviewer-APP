@@ -2,6 +2,7 @@ package com.sakura_ai_reviewer.core.network
 
 import com.sakura_ai_reviewer.BuildConfig
 import com.sakura_ai_reviewer.feature.auth.data.AuthApiService
+import com.sakura_ai_reviewer.feature.billing.data.BillingApiService
 import com.sakura_ai_reviewer.feature.config.data.ConfigApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.issue.data.IssueApiService
@@ -13,6 +14,7 @@ import com.sakura_ai_reviewer.feature.scan.data.ScanApiService
 import com.sakura_ai_reviewer.feature.settings.data.SettingsApiService
 import com.sakura_ai_reviewer.feature.setup.data.SetupApiService
 import com.sakura_ai_reviewer.feature.user.data.UserApiService
+import com.sakura_ai_reviewer.feature.userconfig.data.UserConfigApiService
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
@@ -129,4 +131,14 @@ object NetworkModule {
     @Singleton
     fun provideSetupApiService(retrofit: Retrofit): SetupApiService =
         retrofit.create(SetupApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideUserConfigApiService(retrofit: Retrofit): UserConfigApiService =
+        retrofit.create(UserConfigApiService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideBillingApiService(retrofit: Retrofit): BillingApiService =
+        retrofit.create(BillingApiService::class.java)
 }
