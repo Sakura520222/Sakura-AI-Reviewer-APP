@@ -3,9 +3,11 @@ package com.sakura_ai_reviewer.feature.review.data
 import com.sakura_ai_reviewer.core.network.ApiResponse
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+import okhttp3.ResponseBody
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 interface ReviewApiService {
 
@@ -28,11 +30,25 @@ interface ReviewApiService {
         @Path("reviewId") reviewId: Int
     ): ApiResponse<List<ReviewFileData>>
 
+    @Streaming
+    @GET("reviews/export")
+    suspend fun exportReviews(
+        @Query("search") search: String = "",
+        @Query("status") status: String = "",
+        @Query("decision") decision: String = ""
+    ): ResponseBody
+
     @GET("reviews/{reviewId}/comments")
     suspend fun getReviewComments(
         @Path("reviewId") reviewId: Int,
         @Query("file_path") filePath: String = ""
     ): ApiResponse<List<ReviewCommentData>>
+
+    @GET("reviews/{reviewId}/files/{filePath}")
+    suspend fun getFileComments(
+        @Path("reviewId") reviewId: Int,
+        @Path("filePath") filePath: String
+    ): ApiResponse<FileCommentsData>
 }
 
 @JsonClass(generateAdapter = true)
@@ -123,4 +139,21 @@ data class SeverityCountsData(
     @Json(name = "major") val major: Int,
     @Json(name = "minor") val minor: Int,
     @Json(name = "suggestion") val suggestion: Int
+)
+
+@JsonClass(generateAdapter = true)
+data class FileCommentsData(
+    @Json(name = "file_path") val filePath: String,
+    @Json(name = "comment_count") val commentCount: Int,
+    @Json(name = "comments") val comments: List<FileCommentItem>
+)
+
+@JsonClass(generateAdapter = true)
+data class FileCommentItem(
+    @Json(name = "id") val id: Int,
+    @Json(name = "line_number") val lineNumber: Int? = null,
+    @Json(name = "comment_type") val commentType: String? = null,
+    @Json(name = "severity") val severity: String? = null,
+    @Json(name = "content") val content: String? = null,
+    @Json(name = "created_at") val createdAt: String? = null
 )

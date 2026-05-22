@@ -35,6 +35,7 @@ browser = "1.9.0"
 
 # Security
 securityCrypto = "1.1.0-alpha06"
+credentials = "1.7.0-alpha02"
 
 # Coroutines
 coroutines = "1.10.2"
@@ -97,6 +98,8 @@ browser = { group = "androidx.browser", name = "browser", version.ref = "browser
 
 # Security
 security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+credentials = { group = "androidx.credentials", name = "credentials", version.ref = "credentials" }
+credentials-play-services-auth = { group = "androidx.credentials", name = "credentials-play-services-auth", version.ref = "credentials" }
 
 # Coroutines
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }

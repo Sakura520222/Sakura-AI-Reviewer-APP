@@ -106,6 +106,8 @@ dependencies {
 
     // Security
     implementation(libs.security.crypto)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
 
     // Coroutines
     implementation(libs.coroutines.android)

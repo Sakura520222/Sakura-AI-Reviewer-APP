@@ -21,7 +21,7 @@ class AuthInterceptor @Inject constructor(
         val request = chain.request()
         val path = request.url.encodedPath
 
-        if (NetworkConstants.isPublicPath(path)) {
+        if (NetworkConstants.isPublicPath(path) || request.header("Authorization") != null) {
             return chain.proceed(request)
         }
 

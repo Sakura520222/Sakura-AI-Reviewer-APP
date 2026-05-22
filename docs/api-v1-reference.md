@@ -9,7 +9,7 @@
 ### Base URL
 
 ```
-https://your-server.com/api/v1
+https://pr-bot.firefly520.top/api/v1
 ```
 
 ### 认证方式
@@ -85,6 +85,8 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | 400 | 请求参数错误 |
 | 401 | 未提供认证凭证 / 凭证无效或已过期 |
 | 403 | 权限不足（角色不满足要求） |
+| 428 | 需要先完成 MFA 注册（全局或单用户强制 MFA） |
+| 429 | 请求过于频繁或 MFA 连续失败后被临时锁定 |
 | 404 | 资源不存在 |
 | 409 | 资源冲突（如正在索引中） |
 | 500 | 服务器内部错误 |
@@ -99,8 +101,13 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | OAuth 授权 `GET /auth/github` | 10 次/分钟 |
 | 移动端 OAuth `GET /auth/github/mobile` | 10 次/分钟 |
 | OAuth 回调 `POST /auth/callback` | 5 次/分钟 |
+| 二次验证 `POST /auth/2fa/verify` | 5 次/分钟 |
+| Passkey 二次验证 `POST /auth/2fa/passkey/options` | 默认 10 次/分钟，可通过 `passkeys_authentication_rate_limit` 配置 |
+| Passkey 二次验证 `POST /auth/2fa/passkey/verify` | 默认 10 次/分钟，可通过 `passkeys_authentication_rate_limit` 配置 |
 | 登出 `POST /auth/logout` | 10 次/分钟 |
 | Setup 连接测试 `POST /setup/test-connection` | 10 次/分钟 |
+| Setup 模型列表 `POST /setup/ai-providers/{provider}/models` | 10 次/分钟 |
+| 配置模型列表 `POST /config/ai-providers/{provider}/models` | 10 次/分钟 |
 | Setup 完成 `POST /setup/complete` | 3 次/分钟 |
 | 扫描触发 `POST /scans/trigger` | 3 次/分钟 |
 | 其他端点 | 无额外限流（按服务器默认策略） |
@@ -115,68 +122,88 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | 2 | GET | `/auth/github` | 免认证 | 获取 GitHub OAuth 授权 URL |
 | 3 | GET | `/auth/github/mobile` | 免认证 | 获取移动端 GitHub OAuth 授权 URL |
 | 4 | POST | `/auth/callback` | 免认证 | OAuth 回调换取 Token |
-| 5 | POST | `/auth/logout` | auth | 登出 |
-| 6 | GET | `/auth/me` | auth | 获取当前用户信息 |
-| 7 | GET | `/setup/state` | 免认证 | 获取 Setup 状态 |
-| 8 | POST | `/setup/test-connection` | 免认证 | 测试连接配置 |
-| 9 | POST | `/setup/save-step` | 免认证 | 保存单步配置 |
-| 10 | POST | `/setup/complete` | 免认证 | 完成 Setup 全流程 |
-| 11 | GET | `/dashboard/stats` | auth | 仪表盘统计 |
-| 12 | GET | `/dashboard/recent-reviews` | auth | 最近审查列表 |
-| 13 | GET | `/dashboard/chart-data` | auth | 仪表盘图表数据 |
-| 14 | POST | `/dashboard/cache/refresh` | auth | 刷新仪表盘缓存 |
-| 15 | GET | `/reviews` | auth | PR 审查列表（分页） |
-| 16 | GET | `/reviews/export` | auth | 导出审查 CSV |
-| 17 | GET | `/reviews/{review_id}` | auth | 审查详情（含评论） |
-| 18 | GET | `/reviews/{review_id}/files` | auth | 审查文件级统计 |
-| 19 | GET | `/reviews/{review_id}/comments` | auth | 审查评论列表 |
-| 20 | GET | `/reviews/{review_id}/files/{file_path}` | auth | 特定文件评论 |
-| 21 | GET | `/issues` | auth | Issue 分析列表（分页） |
-| 22 | GET | `/issues/stats` | auth | Issue 统计 |
-| 23 | GET | `/issues/{issue_id}` | auth | Issue 分析详情 |
-| 24 | POST | `/issues/{issue_id}/reanalyze` | auth | 重新分析 Issue |
-| 25 | GET | `/users` | admin | 用户列表（分页） |
-| 26 | POST | `/users` | super_admin | 创建用户 |
-| 27 | GET | `/users/{user_id}` | admin | 用户详情 |
-| 28 | PATCH | `/users/{user_id}/role` | admin | 修改用户角色 |
-| 29 | PATCH | `/users/{user_id}/quota` | admin | 修改用户 PR 配额 |
-| 30 | PATCH | `/users/{user_id}/issue-quota` | admin | 修改用户 Issue 配额 |
-| 31 | POST | `/users/{user_id}/toggle` | admin | 启用/禁用用户 |
-| 32 | DELETE | `/users/{user_id}` | super_admin | 删除用户 |
-| 33 | PATCH | `/users/{user_id}/info` | super_admin | 修改用户基本信息 |
-| 34 | POST | `/users/{user_id}/reset-quota` | super_admin | 重置用户配额使用量 |
-| 35 | GET | `/repos` | admin | 仓库列表 |
-| 36 | POST | `/repos/{repo_name}/index-docs` | admin | 触发文档索引 |
-| 37 | POST | `/repos/{repo_name}/index-code` | admin | 触发代码索引 |
-| 38 | POST | `/repos/{repo_name}/index-issues` | admin | 触发 Issues 索引 |
-| 39 | POST | `/repos/{repo_name}/scan` | super_admin | 触发仓库扫描 |
-| 40 | GET | `/config/general` | super_admin | 获取全局配置 |
-| 41 | PATCH | `/config/general` | super_admin | 更新全局配置 |
-| 42 | GET | `/config/strategies` | super_admin | 获取策略配置 |
-| 43 | PATCH | `/config/strategies/{section}` | super_admin | 更新策略配置 section |
-| 44 | GET | `/config/labels` | super_admin | 获取标签配置 |
-| 45 | PUT | `/config/labels` | super_admin | 更新标签定义 |
-| 46 | PATCH | `/config/labels/recommendation` | super_admin | 更新标签推荐设置 |
-| 47 | GET | `/logs/reviews` | auth | 审查日志列表（分页） |
-| 48 | GET | `/logs/reviews/{review_id}` | auth | 审查日志详情 |
-| 49 | GET | `/logs/actions` | admin | 操作日志列表（分页） |
-| 50 | GET | `/logs/actions/{log_id}` | admin | 操作日志详情 |
-| 51 | GET | `/queue/stats` | admin | 队列统计 |
-| 52 | GET | `/queue/items` | admin | 队列列表（分页） |
-| 53 | GET | `/queue/items/{item_id}` | admin | 队列项详情 |
-| 54 | POST | `/queue/items/{item_id}/retry` | admin | 重试队列项 |
-| 55 | DELETE | `/queue/items/{item_id}` | admin | 删除队列项 |
-| 56 | POST | `/queue/purge` | admin | 批量清理队列 |
-| 57 | GET | `/scans` | auth | 扫描列表（分页） |
-| 58 | GET | `/scans/stats` | auth | 扫描统计 |
-| 59 | GET | `/scans/{scan_id}` | auth | 扫描详情 |
-| 60 | POST | `/scans/trigger` | super_admin | 手动触发扫描 |
-| 61 | POST | `/scans/{scan_id}/retry` | super_admin | 重试扫描 |
-| 62 | POST | `/scans/{scan_id}/cancel` | super_admin | 取消扫描 |
-| 63 | GET | `/settings` | auth | 获取个人设置 |
-| 64 | PATCH | `/settings` | auth | 更新个人设置 |
-| 65 | GET | `/settings/about` | auth | 获取系统版本信息 |
-| 66 | GET | `/events` | auth | SSE 事件流 |
+| 5 | POST | `/auth/2fa/verify` | 免认证 | 二次验证并换取正式 Token |
+| 6 | POST | `/auth/logout` | auth | 登出 |
+| 7 | GET | `/auth/me` | auth | 获取当前用户信息 |
+| 8 | GET | `/setup/state` | 免认证 | 获取 Setup 状态 |
+| 9 | POST | `/setup/test-connection` | 免认证 | 测试连接配置 |
+| 10 | GET | `/setup/ai-providers` | 免认证 | 获取 Setup 可用 AI 厂商 |
+| 11 | POST | `/setup/ai-providers/{provider}/models` | 免认证 | Setup 阶段获取模型列表 |
+| 12 | POST | `/setup/save-step` | 免认证 | 保存单步配置 |
+| 13 | POST | `/setup/complete` | 免认证 | 完成 Setup 全流程 |
+| 14 | GET | `/dashboard/stats` | auth | 仪表盘统计 |
+| 15 | GET | `/dashboard/recent-reviews` | auth | 最近审查列表 |
+| 16 | GET | `/dashboard/chart-data` | auth | 仪表盘图表数据 |
+| 17 | POST | `/dashboard/cache/refresh` | auth | 刷新仪表盘缓存 |
+| 18 | GET | `/reviews` | auth | PR 审查列表（分页） |
+| 19 | GET | `/reviews/export` | auth | 导出审查 CSV |
+| 20 | GET | `/reviews/{review_id}` | auth | 审查详情（含评论） |
+| 21 | GET | `/reviews/{review_id}/files` | auth | 审查文件级统计 |
+| 22 | GET | `/reviews/{review_id}/comments` | auth | 审查评论列表 |
+| 23 | GET | `/reviews/{review_id}/files/{file_path}` | auth | 特定文件评论 |
+| 24 | GET | `/issues` | auth | Issue 分析列表（分页） |
+| 25 | GET | `/issues/stats` | auth | Issue 统计 |
+| 26 | GET | `/issues/{issue_id}` | auth | Issue 分析详情 |
+| 27 | POST | `/issues/{issue_id}/reanalyze` | auth | 重新分析 Issue |
+| 28 | GET | `/users` | admin | 用户列表（分页） |
+| 29 | POST | `/users` | super_admin | 创建用户 |
+| 30 | GET | `/users/{user_id}` | admin | 用户详情 |
+| 31 | PATCH | `/users/{user_id}/role` | admin | 修改用户角色 |
+| 32 | PATCH | `/users/{user_id}/quota` | admin | 修改用户 PR 配额 |
+| 33 | PATCH | `/users/{user_id}/issue-quota` | admin | 修改用户 Issue 配额 |
+| 34 | POST | `/users/{user_id}/toggle` | admin | 启用/禁用用户 |
+| 35 | DELETE | `/users/{user_id}` | super_admin | 删除用户 |
+| 36 | PATCH | `/users/{user_id}/info` | super_admin | 修改用户基本信息 |
+| 37 | POST | `/users/{user_id}/reset-quota` | super_admin | 重置用户配额使用量 |
+| 38 | GET | `/repos` | admin | 仓库列表 |
+| 39 | POST | `/repos/{repo_name}/index-docs` | admin | 触发文档索引 |
+| 40 | POST | `/repos/{repo_name}/index-code` | admin | 触发代码索引 |
+| 41 | POST | `/repos/{repo_name}/index-issues` | admin | 触发 Issues 索引 |
+| 42 | POST | `/repos/{repo_name}/scan` | super_admin | 触发仓库扫描 |
+| 43 | GET | `/config/ai-providers` | super_admin | 获取内置 AI 厂商列表 |
+| 44 | POST | `/config/ai-providers/{provider}/models` | super_admin | 按厂商获取模型列表 |
+| 45 | GET | `/config/general` | super_admin | 获取全局配置 |
+| 46 | PATCH | `/config/general` | super_admin | 更新全局配置 |
+| 47 | GET | `/config/strategies` | super_admin | 获取策略配置 |
+| 48 | PATCH | `/config/strategies/{section}` | super_admin | 更新策略配置 section |
+| 49 | GET | `/config/labels` | super_admin | 获取标签配置 |
+| 50 | PUT | `/config/labels` | super_admin | 更新标签定义 |
+| 51 | PATCH | `/config/labels/recommendation` | super_admin | 更新标签推荐设置 |
+| 52 | GET | `/logs/reviews` | auth | 审查日志列表（分页） |
+| 53 | GET | `/logs/reviews/{review_id}` | auth | 审查日志详情 |
+| 54 | GET | `/logs/actions` | admin | 操作日志列表（分页） |
+| 55 | GET | `/logs/actions/{log_id}` | admin | 操作日志详情 |
+| 56 | GET | `/queue/stats` | admin | 队列统计 |
+| 57 | GET | `/queue/items` | admin | 队列列表（分页） |
+| 58 | GET | `/queue/items/{item_id}` | admin | 队列项详情 |
+| 59 | POST | `/queue/items/{item_id}/retry` | admin | 重试队列项 |
+| 60 | DELETE | `/queue/items/{item_id}` | admin | 删除队列项 |
+| 61 | POST | `/queue/purge` | admin | 批量清理队列 |
+| 62 | GET | `/scans` | admin | 扫描列表（分页） |
+| 63 | GET | `/scans/stats` | admin | 扫描统计 |
+| 64 | GET | `/scans/{scan_id}` | admin | 扫描详情 |
+| 65 | POST | `/scans/trigger` | super_admin | 手动触发扫描 |
+| 66 | POST | `/scans/{scan_id}/retry` | super_admin | 重试扫描 |
+| 67 | POST | `/scans/{scan_id}/cancel` | super_admin | 取消扫描 |
+| 68 | GET | `/settings` | auth | 获取个人设置 |
+| 69 | PATCH | `/settings` | auth | 更新个人设置 |
+| 70 | GET | `/settings/about` | auth | 获取系统版本信息 |
+| 71 | GET | `/user-config` | auth | 获取当前用户可覆盖配置 |
+| 72 | PATCH | `/user-config` | auth | 更新当前用户配置覆盖 |
+| 73 | GET | `/user-config/metadata` | auth | 获取用户配置元数据 |
+| 74 | GET | `/billing/plans` | auth | 获取可用套餐 |
+| 75 | POST | `/billing/redeem` | auth | 兑换配额码 |
+| 76 | GET | `/billing/orders` | auth | 获取订单历史 |
+| 77 | POST | `/billing/admin/plans` | super_admin | 创建套餐 |
+| 78 | PUT | `/billing/admin/plans/{plan_id}` | super_admin | 编辑套餐 |
+| 79 | DELETE | `/billing/admin/plans/{plan_id}` | super_admin | 删除套餐（默认软删除，可选硬删除） |
+| 80 | POST | `/billing/admin/codes/generate` | super_admin | 批量生成兑换码 |
+| 81 | PUT | `/billing/admin/codes/{code_id}` | super_admin | 编辑兑换码 |
+| 82 | DELETE | `/billing/admin/codes/{code_id}` | super_admin | 删除兑换码 |
+| 83 | POST | `/billing/admin/grant` | super_admin | 手动为用户充值 |
+| 84 | POST | `/auth/2fa/passkey/options` | 免认证 | 创建 API Passkey 认证 options |
+| 85 | POST | `/auth/2fa/passkey/verify` | 免认证 | 验证 API Passkey 认证 |
+| 86 | GET | `/events` | auth | SSE 事件流 |
 
 ---
 
@@ -324,7 +351,155 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 }
 ```
 
+当用户已启用 TOTP 或 Passkey，OAuth 回调不会直接签发正式 `access_token`，而是返回 `message="mfa_required"` 与临时 `mfa_token`：
+
+```json
+{
+  "success": true,
+  "message": "mfa_required",
+  "data": {
+    "mfa_required": true,
+    "mfa_token": "eyJhbGciOiJIUzI1NiIs...",
+    "methods": ["totp", "recovery_code"],
+    "user": {
+      "sub": "octocat",
+      "role": "user",
+      "user_id": 1,
+      "github_id": 12345,
+      "avatar_url": "https://avatars.githubusercontent.com/u/12345?v=4"
+    }
+  }
+}
+```
+
+客户端收到该响应后，应根据 `methods` 字段选择验证方式：TOTP/恢复码调用 `POST /auth/2fa/verify`，Passkey 调用 `POST /auth/2fa/passkey/options` 后再提交 `POST /auth/2fa/passkey/verify` 换取正式 Token。
+
 > **Android 接入建议**：获取 `access_token` 后存储到本地安全存储（如 EncryptedSharedPreferences），后续所有请求通过 `Authorization: Bearer <access_token>` 携带。
+
+---
+
+#### POST /auth/2fa/verify
+
+验证 OAuth 登录后返回的临时 `mfa_token` 和 TOTP/恢复码，成功后签发正式 JWT access_token。
+
+**认证级别**：免认证
+
+**限流**：5 次/分钟
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `mfa_token` | string | 是 | OAuth 回调返回的临时二次验证 Token |
+| `code` | string | 是 | 6 位 TOTP 验证码或恢复码 |
+
+**请求示例**：
+
+```json
+{
+  "mfa_token": "eyJhbGciOiJIUzI1NiIs...",
+  "code": "123456"
+}
+```
+
+**响应字段**：同 `POST /auth/callback` 成功签发 Token 时的响应。
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "bearer",
+    "expires_in": 86400,
+    "user": {
+      "sub": "octocat",
+      "role": "user",
+      "user_id": 1,
+      "github_id": 12345,
+      "avatar_url": "https://avatars.githubusercontent.com/u/12345?v=4"
+    }
+  }
+}
+```
+
+**常见错误**：
+
+| HTTP 状态码 | 说明 |
+|-------------|------|
+| 400 | 用户未启用二次验证、验证码/恢复码无效，或当前用户需使用 Passkey 完成验证 |
+| 401 | `mfa_token` 无效或已过期 |
+| 429 | 账户因连续 MFA 验证失败被临时锁定 |
+
+#### POST /auth/2fa/passkey/options
+
+创建 API Passkey（WebAuthn）认证选项，用于移动端 Passkey 二次验证。与 TOTP/恢复码验证流程并列，客户端可根据 `mfa_required` 响应中的 `methods` 字段选择验证方式。
+
+**认证级别**：免认证
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `mfa_token` | string | 是 | OAuth 回调返回的临时二次验证 Token |
+
+**响应字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.challenge_id` | string | 服务端保存的 challenge ID，提交验证时需原样带回 |
+| `data.public_key` | object | WebAuthn Authentication Options（PublicKeyCredentialRequestOptions JSON） |
+| `data.rp_id` | string | Relying Party ID |
+| `data.origin` | string | 服务端用于校验的 Origin |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "challenge_id": "base64url-challenge-id",
+    "public_key": {
+      "challenge": "base64url-challenge",
+      "rpId": "example.com",
+      "allowCredentials": [],
+      "timeout": 300000,
+      "userVerification": "required"
+    },
+    "rp_id": "example.com",
+    "origin": "https://example.com"
+  }
+}
+```
+
+---
+
+#### POST /auth/2fa/passkey/verify
+
+验证 API Passkey（WebAuthn）认证结果，成功后签发正式 JWT access_token。
+
+**认证级别**：免认证
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `mfa_token` | string | 是 | OAuth 回调返回的临时二次验证 Token |
+| `challenge_id` | string | 是 | `POST /auth/2fa/passkey/options` 返回的 challenge ID |
+| `credential` | object | 是 | WebAuthn 认证结果（navigator.credentials.get() 返回值 JSON 序列化）|
+
+**响应字段**：同 `POST /auth/callback` 成功签发 Token 时的响应。
+
+**常见错误**：
+
+| HTTP 状态码 | 说明 |
+|-------------|------|
+| 400 | Passkey 认证失败或凭证无效 |
+| 401 | `mfa_token` 无效或已过期 |
+| 429 | 账户因连续 MFA 验证失败被临时锁定 |
 
 ---
 
@@ -448,8 +623,10 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | `redis_url` | string | 条件 | Redis 连接 URL（type=redis） |
 | `app_id` | string | 条件 | GitHub App ID（type=github） |
 | `private_key` | string | 条件 | GitHub 私钥（type=github） |
-| `api_key` | string | 条件 | OpenAI API Key（type=openai） |
-| `api_base` | string | 条件 | OpenAI API Base URL（type=openai） |
+| `provider` | string | 否 | AI 厂商 ID（type=openai，默认 `custom`） |
+| `api_key` | string | 条件 | OpenAI 兼容 API Key（type=openai） |
+| `api_base` | string | 条件 | OpenAI 兼容 API Base URL（type=openai） |
+| `model` | string | 否 | 用于辅助查询上下文窗口的模型名（type=openai） |
 | `bot_token` | string | 条件 | Telegram Bot Token（type=telegram） |
 
 **请求示例**：
@@ -470,6 +647,83 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
   "data": {
     "success": true,
     "message": "数据库连接成功"
+  }
+}
+```
+
+---
+
+#### GET /setup/ai-providers
+
+获取 Setup Wizard 可选择的内置 AI 厂商列表。
+
+**认证级别**：免认证（需 bootstrap 模式）
+
+**响应字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.providers` | array | AI Provider 元数据列表，包含 `id`、`label`、`base_url`、`default_model`、是否支持模型列表和上下文窗口等信息 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "providers": [
+      {
+        "id": "deepseek",
+        "label": "DeepSeek",
+        "base_url": "https://api.deepseek.com/v1",
+        "default_model": "deepseek-chat",
+        "models_endpoint": "models",
+        "model_detail_endpoint": "models/{model}",
+        "supports_model_list": true,
+        "supports_context_window": true,
+        "notes": ""
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### POST /setup/ai-providers/{provider}/models
+
+Setup 阶段按 AI 厂商获取模型列表，并尽可能提取上下文窗口信息。
+
+**认证级别**：免认证（需 bootstrap 模式）
+
+**限流**：10 次/分钟
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `provider` | string | AI 厂商 ID，如 `openai`、`deepseek`、`qwen`、`custom` |
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `api_key` | string | 否 | API Key |
+| `api_base` | string | 否 | 自定义 API Base URL |
+| `model` | string | 否 | 指定模型名，用于查询模型详情时辅助提取上下文窗口 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "success": true,
+    "models": ["deepseek-chat", "deepseek-reasoner"],
+    "context_window_k": 64,
+    "message": "获取模型列表成功"
   }
 }
 ```
@@ -530,9 +784,11 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | `GITHUB_APP_ID` | string | GitHub App ID |
 | `GITHUB_PRIVATE_KEY` | string | GitHub App 私钥 |
 | `GITHUB_WEBHOOK_SECRET` | string | GitHub Webhook 密钥 |
-| `OPENAI_API_KEY` | string | OpenAI API Key |
-| `OPENAI_API_BASE` | string | OpenAI API Base URL |
-| `OPENAI_MODEL` | string | OpenAI 模型名 |
+| `AI_PROVIDER` | string | AI 厂商 ID |
+| `OPENAI_API_KEY` | string | OpenAI 兼容 API Key |
+| `OPENAI_API_BASE` | string | OpenAI 兼容 API Base URL |
+| `OPENAI_MODEL` | string | OpenAI 兼容模型名 |
+| `SUMMARY_PROVIDER` | string | Summary 使用的 AI 厂商 ID |
 | `TELEGRAM_BOT_TOKEN` | string | Telegram Bot Token |
 | `APP_DOMAIN` | string | 应用域名 |
 | `APP_PORT` | string | 应用端口 |
@@ -551,6 +807,8 @@ JWT Token 通过 OAuth 登录流程获取，有效期 24 小时（86400 秒）�
 | `RERANK_BASE_URL` | string | Rerank Base URL |
 | `RERANK_MODEL` | string | Rerank 模型名 |
 | `RERANK_PROVIDER` | string | Rerank 提供商 |
+
+> **说明**：当前 Setup 状态步骤按 `database`、`github`、`ai`、`rag`、`admin` 分组展示，服务端实际必填检查来自 `field_groups` 返回值。
 
 **响应示例**：
 
@@ -1546,6 +1804,54 @@ Issue 分析详情。
 
 > 所有配置端点需要 super_admin 权限。敏感字段（含 `secret`、`key`、`token`、`password`、`credential`）会被脱敏为 `****` 格式。错误响应不暴露内部异常详情，仅返回通用错误消息。
 
+#### GET /config/ai-providers
+
+获取内置 AI 厂商列表，用于 WebUI 配置页或客户端生成下拉选项。
+
+**认证级别**：super_admin
+
+**响应字段**：同 `GET /setup/ai-providers`。
+
+---
+
+#### POST /config/ai-providers/{provider}/models
+
+按厂商获取模型列表。若请求体未提供 `api_key` 或 `api_base`，服务端会尝试回退使用数据库中保存的 `openai_api_key` / `openai_api_base`。
+
+**认证级别**：super_admin
+
+**限流**：10 次/分钟
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `provider` | string | AI 厂商 ID，如 `openai`、`deepseek`、`qwen`、`custom` |
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `api_key` | string | 否 | API Key；为空时尝试读取已保存配置 |
+| `api_base` | string | 否 | API Base URL；为空时使用 provider 默认地址或已保存配置 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "success": true,
+    "models": ["gpt-4o-mini", "gpt-4o"],
+    "context_window_k": 128,
+    "message": "获取模型列表成功"
+  }
+}
+```
+
+---
+
 #### GET /config/general
 
 获取全局配置。
@@ -1556,7 +1862,18 @@ Issue 分析详情。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `data.configs` | object | 键值对（键为配置名，值为配置值，敏感值已脱敏） |
+| `data.configs` | object | 键值对（键为配置名，值为配置值，敏感值已脱敏；包括数据库中保存的动态配置） |
+
+常见可配置键包括：
+
+| 配置键 | 说明 |
+|--------|------|
+| `openai_api_key` / `openai_api_base` / `openai_model` | OpenAI 兼容主模型配置 |
+| `output_language` | AI 输出语言配置 |
+| `init_user_daily_quota` / `init_user_weekly_quota` / `init_user_monthly_quota` | 自注册用户基础 PR 配额 |
+| `init_user_issue_daily_quota` / `init_user_issue_weekly_quota` / `init_user_issue_monthly_quota` | 自注册用户基础 Issue 配额 |
+| `init_admin_agent_daily_quota` / `init_admin_agent_weekly_quota` / `init_admin_agent_monthly_quota` | Setup 初始管理员 Agent 配额 |
+| `init_user_agent_daily_quota` / `init_user_agent_weekly_quota` / `init_user_agent_monthly_quota` | 自注册用户基础 Agent 配额 |
 
 **响应示例**：
 
@@ -2034,7 +2351,7 @@ Issue 分析详情。
 
 扫描列表，支持分页和过滤。
 
-**认证级别**：auth
+**认证级别**：admin
 
 **查询参数**：
 
@@ -2067,7 +2384,7 @@ Issue 分析详情。
 
 扫描统计数据。
 
-**认证级别**：auth
+**认证级别**：admin
 
 **响应字段**：
 
@@ -2101,7 +2418,7 @@ Issue 分析详情。
 
 扫描详情，含所有发现（findings）。
 
-**认证级别**：auth
+**认证级别**：admin
 
 **路径参数**：
 
@@ -2322,15 +2639,428 @@ Issue 分析详情。
   "success": true,
   "message": "ok",
   "data": {
-    "version": "2.8.2",
-    "build_date": "2026-04-17"
+    "version": "2.11.0",
+    "build_date": "2026-05-11"
   }
 }
 ```
 
 ---
 
-### 3.14 SSE 事件流 (Events)
+### 3.14 用户级配置 (User Config)
+
+用户级配置用于让普通用户覆盖被系统允许的偏好配置。当前仅开放 `output_language`，用于控制该用户触发的 AI 输出语言。配置解析顺序为：**UserConfig → AppConfig → Settings 默认值**。
+
+#### GET /user-config
+
+获取当前用户可覆盖的配置项及其有效值。
+
+**认证级别**：auth
+
+**响应字段**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `data.configs` | array | 配置项状态列表 |
+| `data.configs[].key` | string | 配置键 |
+| `data.configs[].label` | string | 展示名称 |
+| `data.configs[].description` | string | 配置说明 |
+| `data.configs[].input_type` | string | 输入类型，如 `select` |
+| `data.configs[].options` | array | 可选项列表 |
+| `data.configs[].user_value` | string \| null | 用户覆盖值；为 `null` 表示未覆盖 |
+| `data.configs[].global_value` | string | 全局配置值 |
+| `data.configs[].effective_value` | string | 当前实际生效值 |
+| `data.configs[].is_overridden` | bool | 是否存在用户覆盖 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "configs": [
+      {
+        "key": "output_language",
+        "label": "输出语言",
+        "description": "AI 评论和报告使用的语言",
+        "input_type": "select",
+        "options": [
+          {"value": "", "label": "跟随全局"},
+          {"value": "zh-CN", "label": "简体中文"},
+          {"value": "en", "label": "English"}
+        ],
+        "user_value": "en",
+        "global_value": "zh-CN",
+        "effective_value": "en",
+        "is_overridden": true
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### PATCH /user-config
+
+更新当前用户的配置覆盖。传入 `null` 表示删除该用户覆盖值并回退到全局配置。
+
+**认证级别**：auth
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `configs` | object | 是 | 键值对，当前仅允许 `output_language` |
+
+**请求示例（设置英文输出）**：
+
+```json
+{
+  "configs": {
+    "output_language": "en"
+  }
+}
+```
+
+**请求示例（删除覆盖，回退全局）**：
+
+```json
+{
+  "configs": {
+    "output_language": null
+  }
+}
+```
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "配置已更新"
+}
+```
+
+**校验规则**：
+
+| 配置键 | 允许值 | 说明 |
+|--------|--------|------|
+| `output_language` | `""` / `"zh-CN"` / `"en"` / `null` | 空字符串或 `null` 表示跟随全局配置 |
+
+---
+
+#### GET /user-config/metadata
+
+获取用户可配置项元数据，适合客户端构建表单。
+
+**认证级别**：auth
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "message": "ok",
+  "data": {
+    "allowed_keys": ["output_language"],
+    "options": {
+      "output_language": [
+        {"value": "", "label": "跟随全局"},
+        {"value": "zh-CN", "label": "简体中文"},
+        {"value": "en", "label": "English"}
+      ]
+    }
+  }
+}
+```
+
+---
+
+### 3.15 付费配额 (Billing)
+
+Billing 端点仅在付费配额系统启用时可用；未启用时会返回拒绝访问或功能未启用错误。当前 Billing 模块部分响应为直接 JSON，不完全使用统一 `success_response` 包装。
+
+#### GET /billing/plans
+
+列出当前可用套餐。
+
+**认证级别**：auth
+
+**响应示例**：
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Pro 月度包",
+    "plan_type": "subscription",
+    "price_cents": 990,
+    "currency": "CNY",
+    "duration_days": 30,
+    "pr_quota_bonus": 0,
+    "pr_daily_add": 10,
+    "pr_weekly_add": 0,
+    "pr_monthly_add": 0,
+    "issue_quota_bonus": 0,
+    "issue_daily_add": 20,
+    "issue_weekly_add": 0,
+    "issue_monthly_add": 0,
+    "description": "月度订阅套餐"
+  }
+]
+```
+
+---
+
+#### POST /billing/redeem
+
+兑换配额兑换码。
+
+**认证级别**：auth
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `code` | string | 是 | 兑换码 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "order_no": "ORD202605090001",
+  "plan_name": "Pro 月度包"
+}
+```
+
+---
+
+#### GET /billing/orders
+
+获取当前用户订单历史。
+
+**认证级别**：auth
+
+**查询参数**：
+
+| 参数 | 类型 | 默认值 | 范围 | 说明 |
+|------|------|--------|------|------|
+| `limit` | int | 20 | 1-100 | 返回数量 |
+| `offset` | int | 0 | >= 0 | 偏移量 |
+
+**响应示例**：
+
+```json
+{
+  "total": 1,
+  "orders": [
+    {
+      "id": 1,
+      "order_no": "ORD202605090001",
+      "plan_name": "Pro 月度包",
+      "amount_cents": 990,
+      "currency": "CNY",
+      "status": "paid",
+      "payment_provider": "redeem_code",
+      "created_at": "2026-05-09T12:00:00",
+      "fulfilled_at": "2026-05-09T12:00:01"
+    }
+  ]
+}
+```
+
+---
+
+#### POST /billing/admin/plans
+
+创建套餐。
+
+**认证级别**：super_admin
+
+**请求体字段**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 套餐名称 |
+| `plan_type` | string | 是 | `one_time` 或 `subscription` |
+| `price_cents` | int | 否 | 价格（分） |
+| `currency` | string | 否 | 货币，默认 `CNY` |
+| `duration_days` | int \| null | 否 | 有效天数 |
+| `pr_quota_bonus` / `issue_quota_bonus` | int | 否 | 一次性配额增量 |
+| `pr_daily_add` / `issue_daily_add` | int | 否 | 每日配额增量 |
+| `pr_weekly_add` / `issue_weekly_add` | int | 否 | 每周配额增量 |
+| `pr_monthly_add` / `issue_monthly_add` | int | 否 | 每月配额增量 |
+| `description` | string \| null | 否 | 套餐描述 |
+| `sort_order` | int | 否 | 排序值 |
+
+**响应示例**：
+
+```json
+{
+  "id": 1,
+  "name": "Pro 月度包"
+}
+```
+
+---
+
+#### PUT /billing/admin/plans/{plan_id}
+
+编辑现有套餐。
+
+**认证级别**：super_admin
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `plan_id` | int | 套餐 ID |
+
+**请求体字段**：同创建套餐（`POST /billing/admin/plans`），所有字段可选，仅传递需要修改的字段。
+
+**响应示例**：
+
+```json
+{
+  "id": 1,
+  "name": "Pro 月度包（更新）"
+}
+```
+
+---
+
+#### DELETE /billing/admin/plans/{plan_id}
+
+删除套餐。默认软删除；传入 `hard=true` 时从数据库硬删除。
+
+**认证级别**：super_admin
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `plan_id` | int | 套餐 ID |
+
+**查询参数**：
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `hard` | bool | `false` | 是否硬删除 |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "id": 1,
+  "name": "Pro 月度包",
+  "hard_delete": false
+}
+```
+
+---
+
+#### PUT /billing/admin/codes/{code_id}
+
+编辑兑换码（状态、过期时间、最大使用次数）。
+
+**认证级别**：super_admin
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `code_id` | int | 兑换码 ID |
+
+**请求体字段**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `status` | string | 否 | 兑换码状态：`active` / `disabled` |
+| `expires_at` | string \| null | 否 | 过期时间 |
+| `max_uses` | int | 否 | 最大使用次数 |
+| `plan_id` | int | 否 | 绑定的新套餐 ID |
+
+---
+
+#### DELETE /billing/admin/codes/{code_id}
+
+删除兑换码。
+
+**认证级别**：super_admin
+
+**路径参数**：
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `code_id` | int | 兑换码 ID |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "id": 1,
+  "code": "SAKURA-ABCD"
+}
+```
+
+---
+
+#### POST /billing/admin/codes/generate
+
+批量生成兑换码。
+
+**认证级别**：super_admin
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `plan_id` | int | 是 | 套餐 ID |
+| `count` | int | 是 | 生成数量，1-100 |
+| `batch_name` | string \| null | 否 | 批次名称 |
+| `max_uses` | int | 否 | 每个兑换码最大使用次数，默认 1 |
+
+**响应示例**：
+
+```json
+{
+  "count": 2,
+  "codes": ["SAKURA-ABCD", "SAKURA-EFGH"]
+}
+```
+
+---
+
+#### POST /billing/admin/grant
+
+管理员手动为用户发放套餐权益。
+
+**认证级别**：super_admin
+
+**请求体**：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `user_id` | int | 是 | 目标用户 ID |
+| `plan_id` | int | 是 | 套餐 ID |
+
+**响应示例**：
+
+```json
+{
+  "success": true,
+  "order_no": "ORD202605090002"
+}
+```
+
+---
+
+### 3.16 SSE 事件流 (Events)
 
 #### GET /events
 
@@ -2386,9 +3116,19 @@ data: {"scan_id": 101, "progress": 50, ...}
 
 4. POST /api/v1/auth/callback
    Body: {"code": "xxx", "state": "xxx"}
-   -> 获取 access_token
+  -> 获取 access_token，或在用户启用 MFA 时获取 mfa_token
 
-5. 后续请求: Authorization: Bearer <access_token>
+5. 如返回 message="mfa_required":
+   - TOTP/恢复码：POST /api/v1/auth/2fa/verify
+     Body: {"mfa_token": "xxx", "code": "123456"}
+   - Passkey：POST /api/v1/auth/2fa/passkey/options
+     Body: {"mfa_token": "xxx"}
+     -> 使用 public_key 发起 WebAuthn 认证
+     POST /api/v1/auth/2fa/passkey/verify
+     Body: {"mfa_token": "xxx", "challenge_id": "xxx", "credential": {...}}
+   -> 获取正式 access_token
+
+6. 后续请求: Authorization: Bearer <access_token>
 ```
 
 ### 常用请求模板
@@ -2417,4 +3157,4 @@ val sseSource = EventSource.Factory.create(request, eventListener)
 
 ---
 
-> 文档版本：v1.1 | 最后更新：2026-04-18 | 端点总数：66
+> 文档版本：v1.3 | 最后更新：2026-05-21 | 端点总数：86
