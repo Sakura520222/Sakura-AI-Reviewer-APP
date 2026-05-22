@@ -6,11 +6,12 @@ import com.sakura_ai_reviewer.core.auth.AccountInfo
 import com.sakura_ai_reviewer.core.auth.AuthState
 import com.sakura_ai_reviewer.core.auth.SessionManager
 import com.sakura_ai_reviewer.core.network.ApiResult
-import com.sakura_ai_reviewer.core.network.toUserMessage
+import com.sakura_ai_reviewer.core.network.safeApiCall
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardApiService
 import com.sakura_ai_reviewer.feature.dashboard.data.DashboardStatsData
 import com.sakura_ai_reviewer.feature.dashboard.data.RecentReviewData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,7 +40,7 @@ class DashboardViewModel @Inject constructor(
 
     init {
         loadUserInfo()
-        loadDashboard()
+        viewModelScope.launch { loadDashboard() }
         viewModelScope.launch {
             sessionManager.authState.collect {
                 loadUserInfo()
@@ -60,45 +61,30 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    fun loadDashboard() {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(stats = ApiResult.Loading)
-            try {
-                val response = dashboardApiService.getStats()
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(
-                        stats = ApiResult.Success(response.data)
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        stats = ApiResult.Error(response.error ?: "Failed to load stats")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    stats = ApiResult.Error(e.toUserMessage())
-                )
-            }
-        }
+    fun reloadDashboard() {
+        viewModelScope.launch { loadDashboard() }
+    }
 
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(recentReviews = ApiResult.Loading)
-            try {
-                val response = dashboardApiService.getRecentReviews()
-                if (response.success && response.data != null) {
-                    _uiState.value = _uiState.value.copy(
-                        recentReviews = ApiResult.Success(response.data)
-                    )
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        recentReviews = ApiResult.Error(response.error ?: "Failed to load reviews")
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    recentReviews = ApiResult.Error(e.toUserMessage())
+    private suspend fun loadDashboard() = coroutineScope {
+        _uiState.value = _uiState.value.copy(
+            stats = ApiResult.Loading,
+            recentReviews = ApiResult.Loading
+        )
+        launch {
+            _uiState.value = _uiState.value.copy(
+                stats = safeApiCall(
+                    apiCall = { dashboardApiService.getStats() },
+                    errorMessage = "Failed to load stats"
                 )
-            }
+            )
+        }
+        launch {
+            _uiState.value = _uiState.value.copy(
+                recentReviews = safeApiCall(
+                    apiCall = { dashboardApiService.getRecentReviews() },
+                    errorMessage = "Failed to load reviews"
+                )
+            )
         }
     }
 
@@ -116,7 +102,7 @@ class DashboardViewModel @Inject constructor(
     fun switchAccount(userId: Int) {
         sessionManager.switchAccount(userId)
         loadUserInfo()
-        loadDashboard()
+        viewModelScope.launch { loadDashboard() }
     }
 
     fun removeAccount(userId: Int) {

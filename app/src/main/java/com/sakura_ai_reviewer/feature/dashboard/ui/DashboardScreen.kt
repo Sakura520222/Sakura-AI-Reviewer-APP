@@ -121,7 +121,7 @@ fun DashboardScreen(
             is ApiResult.Error -> {
                 ErrorSection(
                     message = stats.message,
-                    onRetry = { viewModel.loadDashboard() }
+                    onRetry = { viewModel.reloadDashboard() }
                 )
             }
             is ApiResult.Cached -> {
@@ -177,7 +177,7 @@ fun DashboardScreen(
             is ApiResult.Error -> {
                 ErrorSection(
                     message = reviews.message,
-                    onRetry = { viewModel.loadDashboard() }
+                    onRetry = { viewModel.reloadDashboard() }
                 )
             }
             is ApiResult.Cached -> {

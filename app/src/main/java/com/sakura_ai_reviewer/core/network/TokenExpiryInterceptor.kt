@@ -20,10 +20,7 @@ class TokenExpiryInterceptor @Inject constructor(
         val request = chain.request()
         val path = request.url.encodedPath
 
-        val publicPaths = listOf("/health", "/auth/github", "/auth/callback", "/setup/")
-        val isPublic = publicPaths.any { path.contains(it) }
-
-        if (!isPublic && tokenManager.isTokenExpired(SAFETY_MARGIN_MS)) {
+        if (!NetworkConstants.isPublicPath(path) && tokenManager.isTokenExpired(SAFETY_MARGIN_MS)) {
             return Response.Builder()
                 .request(request)
                 .protocol(okhttp3.Protocol.HTTP_1_1)

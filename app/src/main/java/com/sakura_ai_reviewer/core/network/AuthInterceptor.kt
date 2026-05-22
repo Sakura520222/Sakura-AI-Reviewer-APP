@@ -1,9 +1,10 @@
 package com.sakura_ai_reviewer.core.network
 
-import android.util.Log
 import com.sakura_ai_reviewer.core.security.TokenManager
 import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,26 +21,28 @@ class AuthInterceptor @Inject constructor(
         val request = chain.request()
         val path = request.url.encodedPath
 
-        val publicPaths = listOf("/health", "/auth/github", "/auth/callback", "/setup/")
-        val isPublic = publicPaths.any { path.contains(it) }
-
-        return if (isPublic) {
-            Log.d(TAG, "Public path: $path — skipping auth")
-            chain.proceed(request)
-        } else {
-            val token = tokenManager.getToken()
-            if (token != null) {
-                val authenticatedRequest = request.newBuilder()
-                    .header("Authorization", "Bearer $token")
-                    .build()
-                Log.d(TAG, "Auth request: $path | Token: ${token.take(20)}... | Headers: ${authenticatedRequest.headers}")
-                val response = chain.proceed(authenticatedRequest)
-                Log.d(TAG, "Response: ${response.code} for $path | Server headers: ${response.headers}")
-                response
-            } else {
-                Log.w(TAG, "No token available for protected path: $path")
-                chain.proceed(request)
-            }
+        if (NetworkConstants.isPublicPath(path)) {
+            return chain.proceed(request)
         }
+
+        val token = tokenManager.getToken()
+        if (token != null) {
+            val authenticatedRequest = request.newBuilder()
+                .header("Authorization", "Bearer $token")
+                .build()
+            return chain.proceed(authenticatedRequest)
+        }
+
+        // No token for protected path — return synthetic 401 instead of sending unauthenticated request
+        return Response.Builder()
+            .request(request)
+            .protocol(okhttp3.Protocol.HTTP_1_1)
+            .code(401)
+            .message("No authentication token")
+            .body(
+                "{\"success\":false,\"error\":\"No authentication token\"}"
+                    .toResponseBody("application/json".toMediaType())
+            )
+            .build()
     }
 }
